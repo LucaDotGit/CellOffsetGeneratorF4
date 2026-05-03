@@ -1,0 +1,6 @@
+{
+	"version": 11,
+	"include": [
+		"./lib/CommonLibF4/CMakePresets.json"
+	]
+}

@@ -1,0 +1,82 @@
+[Debug]
+
+# [Default: 2] The minimum level of information that is printed to the plugin's log file.
+# 00 = Trace
+# 01 = Debug
+# 02 = Information
+# 03 = Warning
+# 04 = Error
+# 05 = Critical
+# 06 = Off
+iLogLevel = 2
+
+# [Default: -1] The number of log files to keep before overwriting older ones.
+iLogFileCount = -1
+
+
+[General]
+
+# [Default: true] Whether a progress menu is being shown when generating cell offsets.
+bEnableMenu = true
+
+# [Default: false] Whether the cell offset generation will only be simulated, without actually creating any caching files.
+bDoDryRun = false
+
+# [Default: true] Whether created cell offset files are marked as read-only.
+bMarkCreatedFilesAsReadOnly = true
+
+
+[Benchmark]
+
+# [Default: false] Whether a benchmark before and after cell offset generation is run.
+# The results are written to "Data/CellOffsetBenchmarks", after the game has been initialized.
+bRunBenchmark = false
+
+# [Default: 100] The number of iterations performed for each benchmark case.
+uiBenchmarkIterationCount = 100
+
+# Determines the benchmark cases that will be run.
+kBenchmarkCases = [
+	# Cell 0x00E4CA
+	{ sWorldSpace = "Commonwealth", iCellX = -4, iCellY = -6 },
+	# Cell 0x00E4CB (FensBrookelineBuildingExt)
+	{ sWorldSpace = "Commonwealth", iCellX = -5, iCellY = -6 },
+	# Cell 0x00E4CC
+	{ sWorldSpace = "Commonwealth", iCellX = -6, iCellY = -6 },
+	# Cell 0x00E4CD (ChestnutHillockReservoirExt03)
+	{ sWorldSpace = "Commonwealth", iCellX = -7, iCellY = -6 },
+	# Cell 0x00E4CE (ChestnutHillockReservoirExt02)
+	{ sWorldSpace = "Commonwealth", iCellX = -8, iCellY = -6 },
+	# Cell 0x00E4E8
+	{ sWorldSpace = "Commonwealth", iCellX = -1, iCellY = -7 },
+	# Cell 0x00E4E9
+	{ sWorldSpace = "Commonwealth", iCellX = -2, iCellY = -7 },
+	# Cell 0x00E4EA
+	{ sWorldSpace = "Commonwealth", iCellX = -3, iCellY = -7 },
+	# Cell 0x00E4EB
+	{ sWorldSpace = "Commonwealth", iCellX = -4, iCellY = -7 },
+	# Cell 0x00E4EC (FensStreetSewerExt)
+	{ sWorldSpace = "Commonwealth", iCellX = -5, iCellY = -7 },
+	# Cell 0x00E4ED (FensSquare)
+	{ sWorldSpace = "Commonwealth", iCellX = -6, iCellY = -7 },
+	# Cell 0x00E4EE (ChestnutHillockReservoirExt04)
+	{ sWorldSpace = "Commonwealth", iCellX = -7, iCellY = -7 },
+	# Cell 0x00E4EF (ChestnutHillockReservoirExt)
+	{ sWorldSpace = "Commonwealth", iCellX = -8, iCellY = -7 },
+	# Cell 0x00E509
+	{ sWorldSpace = "Commonwealth", iCellX = -1, iCellY = -8 },
+	# Cell 0x00E50A
+	{ sWorldSpace = "Commonwealth", iCellX = -2, iCellY = -8 },
+	# Cell 0x00E50B (DiamondCityExt03)
+	{ sWorldSpace = "Commonwealth", iCellX = -3, iCellY = -8 },
+	# Cell 0x00E50C (DiamondCityExt)
+	{ sWorldSpace = "Commonwealth", iCellX = -4, iCellY = -8 },
+	# Cell 0x00E50D (DiamondCityExt01)
+	{ sWorldSpace = "Commonwealth", iCellX = -5, iCellY = -8 },
+	# Cell 0x00E50E (FensParkviewApartmentsExt)
+	{ sWorldSpace = "Commonwealth", iCellX = -6, iCellY = -8 },
+	# Cell 0x00E50F
+	{ sWorldSpace = "Commonwealth", iCellX = -7, iCellY = -8 },
+	# Cell 0x00E510 (MassPikeTunnelWestExt)
+	{ sWorldSpace = "Commonwealth", iCellX = -8, iCellY = -8 },
+]

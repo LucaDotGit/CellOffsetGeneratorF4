@@ -1,0 +1,13 @@
+{
+	"compilerOptions": {
+		"swf-version": 15,
+		"target-player": "11.2",
+		"default-frame-rate": 30,
+		"default-size": {
+			"width": 1280,
+			"height": 720
+		},
+		"use-network": false
+	},
+	"mainClass": ""
+}

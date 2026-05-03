@@ -1,0 +1,19 @@
+{
+	"extends": "asconfig.template.json",
+	"config": "air",
+	"compilerOptions": {
+		"title": "CellOffsetGenerator",
+		"description": "CellOffsetGenerator",
+		"publisher": "Luca",
+		"creator": "Luca",
+		"source-path": [
+			"src",
+			"include"
+		],
+		"library-path": [
+			"lib"
+		],
+		"output": "../CellOffsetGenerator.swf"
+	},
+	"mainClass": "CellOffsetGenerator"
+}
