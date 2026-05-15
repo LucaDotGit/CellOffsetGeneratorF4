@@ -56,7 +56,8 @@ namespace Plugin::Internal::Core
 		CellOffsetFile& operator=(const CellOffsetFile&) = delete;
 		CellOffsetFile& operator=(CellOffsetFile&&) noexcept = default;
 
-		[[nodiscard]] static auto LoadFromFile(const std::filesystem::path& a_path) -> std::expected<CellOffsetFile, REX::SystemError>;
+		[[nodiscard]] static auto LoadFromFile(const std::filesystem::path& a_path)
+			-> std::expected<CellOffsetFile, REX::SystemError>;
 		REX::SystemError SaveToFile(const std::filesystem::path& a_path);
 
 		static REX::SystemError MarkFileAsReadOnly(const std::filesystem::path& a_path) noexcept;

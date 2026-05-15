@@ -4,7 +4,7 @@
  * The quick cell offset search only works for plugins with a master or optimized flag,
  * so the below patches disable those checks to allow normal plugins to work as well.
  */
-namespace Plugin::Internal::Core::CellOffsetPatches
+namespace Plugin::Internal::Core::Impl
 {
 	class NopPatchInfo final
 	{
@@ -109,44 +109,47 @@ namespace Plugin::Internal::Core::CellOffsetPatches
 			.instruction = TES_DATA_HANDLER__GET_EXT_CELL_DATA_FROM_FILE_BY_EDITOR_ID__NEW_INSTRUCTION },
 	};
 	// clang-format on
+}
 
-	static auto HookCollection = REX::NotAssignable<std::vector<REX::NotNull<std::shared_ptr<REL::IHook>>>>();
-
-	void OnXseLoad(REL::HookStore& hookStore)
+namespace Plugin::Internal::Core
+{
+	void CellOffsetPatches::OnXseLoad(REL::HookStore& hookStore)
 	{
-		for (auto i = static_cast<std::size_t>(0); i < MASTER_FLAG_NOP_PATCHES.size(); i++) {
-			const auto& nopPatch = MASTER_FLAG_NOP_PATCHES[i];
+		for (auto i = static_cast<std::size_t>(0); i < Impl::MASTER_FLAG_NOP_PATCHES.size(); i++) {
+			const auto& nopPatch = Impl::MASTER_FLAG_NOP_PATCHES[i];
 
 			auto nopHookName = REX::Format("NopMasterFlagHook_{}"sv, i);
 			auto nopHook = REX::NotNull(std::make_shared<REL::HookNop>(
 				std::move(nopHookName), nopPatch.id, nopPatch.offset, nopPatch.size));
 
 			hookStore.Add(nopHook);
-			HookCollection->emplace_back(std::move(nopHook));
+
+			_hooks.emplace_back(std::move(nopHook));
 		}
 
-		for (auto i = static_cast<std::size_t>(0); i < OPTIMIZED_FLAG_INSTRUCTION_PATCHES.size(); i++) {
-			const auto& instructionPatch = OPTIMIZED_FLAG_INSTRUCTION_PATCHES[i];
+		for (auto i = static_cast<std::size_t>(0); i < Impl::OPTIMIZED_FLAG_INSTRUCTION_PATCHES.size(); i++) {
+			const auto& instructionPatch = Impl::OPTIMIZED_FLAG_INSTRUCTION_PATCHES[i];
 
 			auto instructionHookName = REX::Format("OptimizedFlagInstructionHook_{}"sv, i);
 			auto instructionHook = REX::NotNull(std::make_shared<REL::HookRepl>(
 				std::move(instructionHookName), instructionPatch.id, instructionPatch.offset, instructionPatch.instruction.GetValueOrDefault()));
 
 			hookStore.Add(instructionHook);
-			HookCollection->emplace_back(std::move(instructionHook));
+
+			_hooks.emplace_back(std::move(instructionHook));
 		}
 	}
 
-	void Enable()
+	void CellOffsetPatches::Enable()
 	{
-		for (const auto& hook : *HookCollection) {
+		for (const auto& hook : _hooks) {
 			hook->Enable();
 		}
 	}
 
-	void Disable()
+	void CellOffsetPatches::Disable()
 	{
-		for (const auto& hook : *HookCollection) {
+		for (const auto& hook : _hooks) {
 			hook->Disable();
 		}
 	}

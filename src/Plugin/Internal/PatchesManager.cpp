@@ -4,37 +4,41 @@
 
 namespace Plugin::Internal
 {
-	// NOLINTNEXTLINE(readability-convert-member-functions-to-static)
+	PatchesManager::PatchesManager()
+		: _cellOffsetPatches(std::make_shared<Core::CellOffsetPatches>())
+	{
+	}
+
+	PatchesManager::~PatchesManager() noexcept = default;
+
 	void PatchesManager::OnXseLoad()
 	{
 		static constexpr auto FUNCTION_NAME = REX::GetCurrentFunctionName();
 
 		static constinit auto OnceFlag = std::once_flag();
-		std::call_once(OnceFlag, []() noexcept {
+		std::call_once(OnceFlag, [this]() -> void {
 			REX::LogDebug("{}"sv,
 				FUNCTION_NAME);
 
 			const auto& hookStore = REL::GetHookStore();
 
-			Core::CellOffsetPatches::OnXseLoad(*(hookStore.get()));
+			_cellOffsetPatches->OnXseLoad(*(hookStore.get()));
 		});
 	}
 
-	// NOLINTNEXTLINE(readability-convert-member-functions-to-static)
 	void PatchesManager::Enable()
 	{
 		REX::LogDebug("{}"sv,
 			REX::GetCurrentFunctionName());
 
-		Core::CellOffsetPatches::Enable();
+		_cellOffsetPatches->Enable();
 	}
 
-	// NOLINTNEXTLINE(readability-convert-member-functions-to-static)
 	void PatchesManager::Disable()
 	{
 		REX::LogDebug("{}"sv,
 			REX::GetCurrentFunctionName());
 
-		Core::CellOffsetPatches::Disable();
+		_cellOffsetPatches->Disable();
 	}
 }

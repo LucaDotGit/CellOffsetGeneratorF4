@@ -9,11 +9,12 @@ namespace Plugin::Internal::Core
 		}
 	}
 
-	auto CreateHashState() -> REX::NotNull<HashStateBuffer>
+	auto CreateHashState()
+		-> REX::NotNull<HashStateBuffer>
 	{
 		auto* ptr = XXH3_createState();
 		if (!ptr) [[unlikely]] {
-			REX::AllocationFail("Failed to allocate hash state."sv);
+			throw std::bad_alloc();
 		}
 
 		return HashStateBuffer{
@@ -27,7 +28,8 @@ namespace Plugin::Internal::Core::CellOffsetHasher
 {
 	auto CreateHashForFile(
 		REX::NotNull<RE::TESFile*> a_file,
-		const REX::NotNull<Core::HashStateBuffer>& a_hashState) -> std::expected<HashType, REX::SystemError>
+		const REX::NotNull<Core::HashStateBuffer>& a_hashState)
+		-> std::expected<HashType, REX::SystemError>
 	{
 		auto* fileImpl = a_file->file;
 		if (!fileImpl) [[unlikely]] {
@@ -69,7 +71,8 @@ namespace Plugin::Internal::Core::CellOffsetHasher
 	auto CreateHashForOffsets(
 		const Core::CellOffsetType* a_offsets,
 		std::size_t a_offsetCount,
-		const REX::NotNull<Core::HashStateBuffer>& a_hashState) -> std::expected<HashType, REX::SystemError>
+		const REX::NotNull<Core::HashStateBuffer>& a_hashState)
+		-> std::expected<HashType, REX::SystemError>
 	{
 		if (!a_offsets || a_offsetCount == 0) {
 			return std::unexpected(REX::CreateSystemError(REX::PosixErrorCode::invalid_argument));

@@ -37,11 +37,6 @@ namespace Plugin::Internal::Core
 
 		void CreateCellOffsetsForAll();
 
-		bool CreateCellOffsetsForPlugin(
-			REX::NotNull<RE::TESWorldSpace*> a_worldSpace,
-			REX::NotNull<RE::TESFile*> a_plugin,
-			const REX::NotNull<Core::HashStateBuffer>& a_hashState);
-
 	private:
 		class CellOffsetBufferData final
 		{
@@ -76,7 +71,13 @@ namespace Plugin::Internal::Core
 		[[nodiscard]] auto GenerateCellOffsetsForPlugin(
 			REX::NotNull<RE::TESWorldSpace*> a_worldSpace,
 			REX::NotNull<RE::TESFile*> a_plugin,
-			REX::NotNull<RE::TESWorldSpace::OFFSET_DATA*> a_offsetData) -> std::expected<CellOffsetBufferData, REX::SystemError>;
+			REX::NotNull<RE::TESWorldSpace::OFFSET_DATA*> a_offsetData)
+			-> std::expected<CellOffsetBufferData, REX::SystemError>;
+
+		bool CreateCellOffsetsForPlugin(
+			REX::NotNull<RE::TESWorldSpace*> a_worldSpace,
+			REX::NotNull<RE::TESFile*> a_plugin,
+			const REX::NotNull<Core::HashStateBuffer>& a_hashState);
 
 		void RunTaskForPlugin(
 			REX::NotNull<const RE::TESDataHandler*> a_dataHandler,

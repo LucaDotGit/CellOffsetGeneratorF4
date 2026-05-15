@@ -19,10 +19,10 @@ namespace Plugin::Internal::Core
 
 	CellOffsetMenu::~CellOffsetMenu() noexcept = default;
 
-	auto CellOffsetMenu::CreateMenuInstance() const -> REX::NotNull<std::unique_ptr<RE::GameMenuBase>>
+	auto CellOffsetMenu::CreateMenuInstance() const
+		-> REX::NotNull<std::unique_ptr<RE::GameMenuBase>>
 	{
-		const auto sharedMenu = shared_from_this();
-		return std::make_unique<CustomGameMenu>(std::static_pointer_cast<const CellOffsetMenu>(sharedMenu));
+		return std::make_unique<CustomGameMenu>(std::static_pointer_cast<const CellOffsetMenu>(shared_from_this()));
 	}
 
 	void CellOffsetMenu::OnMenuLoadSuccess([[maybe_unused]] const REX::NotNull<std::unique_ptr<RE::GameMenuBase>>& a_menuInstance) const
@@ -96,8 +96,10 @@ namespace Plugin::Internal::Core
 			return;
 		}
 
-		RE_REGISTER_SF_FUNCTION(menuRoot, std::addressof(nativeCodeObject), getCurrentProgressCounter, _cellOffsetMenu);
-		RE_REGISTER_SF_FUNCTION(menuRoot, std::addressof(nativeCodeObject), getMaxProgressCounter, _cellOffsetMenu);
+		auto& menuRootRef = *menuRoot;
+
+		RE_REGISTER_SF_FUNCTION(menuRootRef, nativeCodeObject, getCurrentProgressCounter, _cellOffsetMenu);
+		RE_REGISTER_SF_FUNCTION(menuRootRef, nativeCodeObject, getMaxProgressCounter, _cellOffsetMenu);
 	}
 
 	CellOffsetMenu::getCurrentProgressCounter::getCurrentProgressCounter(

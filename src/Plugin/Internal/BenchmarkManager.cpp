@@ -109,17 +109,27 @@ namespace Plugin::Internal
 
 	void BenchmarkManager::RunBenchmarksImpl(std::string_view a_extraData)
 	{
-		REX::LogDebug(R"(Running Cell Offset Benchmark ("{}"))"sv,
+		REX::LogDebug(R"(Running cell offset benchmark with extra data "{}")"sv,
 			a_extraData);
 
 		_cellOffsetBenchmark->RunBenchmark();
 
-		const auto saveError = _cellOffsetBenchmark->SaveBenchmarkResult(_cellOffsetBenchmarksDirectoryPath, _cellOffsetBenchmarkFileExtension, a_extraData);
-		if (saveError.value() != 0) [[unlikely]] {
-			REX::LogError("Failed to save benchmark results to file: {}"sv,
-				saveError.message());
-		}
+		const auto filePath = _cellOffsetBenchmark->FormatBenchmarkFilePath(
+			_cellOffsetBenchmarksDirectoryPath,
+			_cellOffsetBenchmarkFileExtension,
+			a_extraData);
+
+		const auto saveError = _cellOffsetBenchmark->SaveBenchmarkResult(filePath);
 
 		_cellOffsetBenchmark->ClearBenchmarkResult();
+
+		if (saveError.value() != REX::ERROR_NUMBER_SUCCESS) [[unlikely]] {
+			REX::LogError(R"(Failed to save benchmark results to file "{}": {})"sv,
+				filePath.generic_string(), saveError.message());
+			return;
+		}
+
+		REX::LogDebug(R"(Saved cell offset benchmark results to file "{}")"sv,
+			filePath.generic_string());
 	}
 }

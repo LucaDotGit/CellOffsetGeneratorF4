@@ -46,67 +46,6 @@ namespace Plugin::Internal::Core
 		DisposeTasks();
 	}
 
-	bool CellOffsetCreator::CreateCellOffsetsForPlugin(
-		REX::NotNull<RE::TESWorldSpace*> a_worldSpace,
-		REX::NotNull<RE::TESFile*> a_plugin,
-		const REX::NotNull<Core::HashStateBuffer>& a_hashState)
-	{
-		const auto& worldSpaceId = a_worldSpace->editorID;
-		const auto* fileName = a_plugin->filename.data();
-
-		auto* cellOffsetData = a_worldSpace->GetOffsetData(a_plugin.get());
-		if (!cellOffsetData) {
-			REX::LogDebug(R"((Plugin "{}", World Space "{}") No cell offset data available)"sv,
-				fileName, worldSpaceId);
-			return false;
-		}
-
-		const auto* fileOffsetData = cellOffsetData->cellFileOffsets;
-		if (fileOffsetData) {
-			REX::LogDebug(R"((Plugin "{}", World Space "{}") Cell offsets already exist)"sv,
-				fileName, worldSpaceId);
-			return false;
-		}
-
-		const auto fileHash = CellOffsetHasher::CreateHashForFile(a_plugin, a_hashState);
-		if (!fileHash.has_value()) [[unlikely]] {
-			REX::LogError(R"((Plugin "{}", World Space "{}") Failed to create file hash)"sv,
-				fileName, worldSpaceId);
-			return false;
-		}
-
-		const auto filePath = GetCellOffsetFilePathForPlugin(a_worldSpace, a_plugin);
-
-		const auto loadFileError = LoadCellOffsetsFromFile(filePath, cellOffsetData, a_hashState, fileHash.value());
-		if (loadFileError.value() == REX::ERROR_NUMBER_SUCCESS) {
-			REX::LogDebug(R"((Plugin "{}", World Space "{}") Loaded cell offsets from file "{}")"sv,
-				fileName, worldSpaceId, filePath.generic_string());
-			return true;
-		}
-
-		auto newOffsetBuffer = GenerateCellOffsetsForPlugin(a_worldSpace.get(), a_plugin, cellOffsetData);
-		if (!newOffsetBuffer.has_value()) [[unlikely]] {
-			REX::LogError(R"((Plugin "{}", World Space "{}") Failed to generate cell offsets: {})"sv,
-				fileName, worldSpaceId, newOffsetBuffer.error().message());
-			return false;
-		}
-
-		if (_settingsManager->GetDoTryDryRunSetting()->GetValue()) {
-			REX::LogDebug(R"((Plugin "{}", World Space "{}") Dry run enabled; skipping file save)"sv,
-				fileName, worldSpaceId);
-			return true;
-		}
-
-		const auto saveFileError = SaveCellOffsetsToFile(filePath, std::move(newOffsetBuffer).value(), cellOffsetData, a_hashState, fileHash.value());
-		if (saveFileError.value() != REX::ERROR_NUMBER_SUCCESS) [[unlikely]] {
-			REX::LogError(R"((Plugin "{}", World Space "{}") Failed to save cell offsets to file "{}": {})"sv,
-				fileName, worldSpaceId, filePath.generic_string(), saveFileError.message());
-			return false;
-		}
-
-		return true;
-	}
-
 	void CellOffsetCreator::LoadCellOffsetMenu()
 	{
 		if (!_settingsManager->GetEnableMenuSetting()->GetValue()) {
@@ -117,8 +56,9 @@ namespace Plugin::Internal::Core
 
 		F4SE::Menus::RegisterMenu(_cellOffsetMenu);
 
-		if (!F4SE::Menus::OpenMenu(_cellOffsetMenu->menuName)) [[unlikely]] {
+		if (!F4SE::Menus::OpenMenuAsync(_cellOffsetMenu->GetMenuName())) [[unlikely]] {
 			REX::LogError("Failed to open the cell offset menu"sv);
+			return;
 		}
 	}
 
@@ -172,14 +112,14 @@ namespace Plugin::Internal::Core
 		REX::LogDebug("Sorting and filtering pending plugins"sv);
 
 		std::ranges::sort(_pendingPlugins,
-			[](const REX::NotNull<RE::TESFile*>& a_lhs, const REX::NotNull<RE::TESFile*>& a_rhs) {
+			[](const REX::NotNull<RE::TESFile*>& a_lhs, const REX::NotNull<RE::TESFile*>& a_rhs) -> bool {
 				const auto leftFileName = std::string_view(a_lhs->filename.data());
 				const auto rightFileName = std::string_view(a_rhs->filename.data());
 				return REX::CompareIgnoreCase(leftFileName, rightFileName) < 0;
 			});
 
 		const auto uniquePluginsSubrange = std::ranges::unique(_pendingPlugins,
-			[](const REX::NotNull<RE::TESFile*>& a_lhs, const REX::NotNull<RE::TESFile*>& a_rhs) {
+			[](const REX::NotNull<RE::TESFile*>& a_lhs, const REX::NotNull<RE::TESFile*>& a_rhs) -> bool {
 				const auto leftFileName = std::string_view(a_lhs->filename.data());
 				const auto rightFileName = std::string_view(a_rhs->filename.data());
 				return REX::EqualsIgnoreCase(leftFileName, rightFileName);
@@ -188,7 +128,7 @@ namespace Plugin::Internal::Core
 		_pendingPlugins.erase(uniquePluginsSubrange.begin(), uniquePluginsSubrange.end());
 
 		std::ranges::sort(_pendingPlugins,
-			[](const REX::NotNull<RE::TESFile*>& a_lhs, const REX::NotNull<RE::TESFile*>& a_rhs) {
+			[](const REX::NotNull<RE::TESFile*>& a_lhs, const REX::NotNull<RE::TESFile*>& a_rhs) -> bool {
 				return a_lhs->fileSize > a_rhs->fileSize;
 			});
 
@@ -211,7 +151,7 @@ namespace Plugin::Internal::Core
 			auto threadPool = REX::ThreadPool();
 
 			const auto taskRunResults = threadPool.SubmitTaskRange(
-				_pendingPlugins, [this](REX::NotNull<RE::TESFile*> a_plugin, REX::NotNull<const RE::TESDataHandler*> a_dataHandler) {
+				_pendingPlugins, [this](REX::NotNull<RE::TESFile*> a_plugin, REX::NotNull<const RE::TESDataHandler*> a_dataHandler) -> void {
 					RunTaskForPlugin(a_dataHandler, a_plugin);
 				},
 				REX::NotNull(dataHandler));
@@ -223,7 +163,9 @@ namespace Plugin::Internal::Core
 			}
 		}
 
-		F4SE::Menus::ForceCloseMenu(_cellOffsetMenu->menuName);
+		if (!F4SE::Menus::CloseMenuAsync(_cellOffsetMenu->GetMenuName())) [[unlikely]] {
+			REX::LogError("Failed to close the cell offset menu."sv);
+		}
 
 		REX::LogDebug("Finished processing all files"sv);
 	}
@@ -334,7 +276,7 @@ namespace Plugin::Internal::Core
 			return saveFileError;
 		}
 
-		if (_settingsManager->GetMarkCreatedFilesAsReadOnlySetting()->GetValue()) {
+		if (_settingsManager->GetCreateReadOnlyFilesSetting()->GetValue()) {
 			std::ignore = CellOffsetFile::MarkFileAsReadOnly(a_filePath);
 		}
 
@@ -345,10 +287,11 @@ namespace Plugin::Internal::Core
 	auto CellOffsetCreator::GenerateCellOffsetsForPlugin(
 		REX::NotNull<RE::TESWorldSpace*> a_worldSpace,
 		REX::NotNull<RE::TESFile*> a_plugin,
-		REX::NotNull<RE::TESWorldSpace::OFFSET_DATA*> a_offsetData) -> std::expected<CellOffsetBufferData, REX::SystemError>
+		REX::NotNull<RE::TESWorldSpace::OFFSET_DATA*> a_offsetData)
+		-> std::expected<CellOffsetBufferData, REX::SystemError>
 	{
-		const auto maxOffsetX = a_offsetData->GetMaxOffsetX();
 		const auto minOffsetX = a_offsetData->GetMinOffsetX();
+		const auto maxOffsetX = a_offsetData->GetMaxOffsetX();
 		const auto minOffsetY = a_offsetData->GetMinOffsetY();
 		const auto maxOffsetY = a_offsetData->GetMaxOffsetY();
 
@@ -415,6 +358,67 @@ namespace Plugin::Internal::Core
 			.offsetCount = offsetCount,
 			.offsetData = std::move(offsetBuffer)
 		};
+	}
+
+	bool CellOffsetCreator::CreateCellOffsetsForPlugin(
+		REX::NotNull<RE::TESWorldSpace*> a_worldSpace,
+		REX::NotNull<RE::TESFile*> a_plugin,
+		const REX::NotNull<Core::HashStateBuffer>& a_hashState)
+	{
+		const auto& worldSpaceId = a_worldSpace->editorID;
+		const auto* fileName = a_plugin->filename.data();
+
+		auto* cellOffsetData = a_worldSpace->GetOffsetData(a_plugin.get());
+		if (!cellOffsetData) {
+			REX::LogDebug(R"((Plugin "{}", World Space "{}") No cell offset data available)"sv,
+				fileName, worldSpaceId);
+			return false;
+		}
+
+		const auto* fileOffsetData = cellOffsetData->cellFileOffsets;
+		if (fileOffsetData) {
+			REX::LogDebug(R"((Plugin "{}", World Space "{}") Cell offsets already exist)"sv,
+				fileName, worldSpaceId);
+			return false;
+		}
+
+		const auto fileHash = CellOffsetHasher::CreateHashForFile(a_plugin, a_hashState);
+		if (!fileHash.has_value()) [[unlikely]] {
+			REX::LogError(R"((Plugin "{}", World Space "{}") Failed to create file hash)"sv,
+				fileName, worldSpaceId);
+			return false;
+		}
+
+		const auto filePath = GetCellOffsetFilePathForPlugin(a_worldSpace, a_plugin);
+
+		const auto loadFileError = LoadCellOffsetsFromFile(filePath, cellOffsetData, a_hashState, fileHash.value());
+		if (loadFileError.value() == REX::ERROR_NUMBER_SUCCESS) {
+			REX::LogDebug(R"((Plugin "{}", World Space "{}") Loaded cell offsets from file "{}")"sv,
+				fileName, worldSpaceId, filePath.generic_string());
+			return true;
+		}
+
+		auto newOffsetBuffer = GenerateCellOffsetsForPlugin(a_worldSpace.get(), a_plugin, cellOffsetData);
+		if (!newOffsetBuffer.has_value()) [[unlikely]] {
+			REX::LogError(R"((Plugin "{}", World Space "{}") Failed to generate cell offsets for file "{}": {})"sv,
+				fileName, worldSpaceId, filePath.generic_string(), newOffsetBuffer.error().message());
+			return false;
+		}
+
+		if (_settingsManager->GetDoTryDryRunSetting()->GetValue()) {
+			REX::LogDebug(R"((Plugin "{}", World Space "{}") Dry run enabled; skipping file save)"sv,
+				fileName, worldSpaceId);
+			return true;
+		}
+
+		const auto saveFileError = SaveCellOffsetsToFile(filePath, std::move(newOffsetBuffer).value(), cellOffsetData, a_hashState, fileHash.value());
+		if (saveFileError.value() != REX::ERROR_NUMBER_SUCCESS) [[unlikely]] {
+			REX::LogError(R"((Plugin "{}", World Space "{}") Failed to save cell offsets to file "{}": {})"sv,
+				fileName, worldSpaceId, filePath.generic_string(), saveFileError.message());
+			return false;
+		}
+
+		return true;
 	}
 
 	void CellOffsetCreator::RunTaskForPlugin(

@@ -21,7 +21,8 @@ namespace Plugin::Internal::Core
 		CellOffsetMenu& operator=(const CellOffsetMenu&) = delete;
 		CellOffsetMenu& operator=(CellOffsetMenu&&) = delete;
 
-		auto CreateMenuInstance() const -> REX::NotNull<std::unique_ptr<RE::GameMenuBase>> override;
+		auto CreateMenuInstance() const
+			-> REX::NotNull<std::unique_ptr<RE::GameMenuBase>> override;
 
 		void OnMenuLoadSuccess(const REX::NotNull<std::unique_ptr<RE::GameMenuBase>>& a_menuInstance) const override;
 		void OnMenuLoadFailure(const REX::NotNull<std::unique_ptr<RE::GameMenuBase>>& a_menuInstance) const override;

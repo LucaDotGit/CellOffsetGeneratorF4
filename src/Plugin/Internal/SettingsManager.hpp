@@ -21,7 +21,7 @@ namespace Plugin::Internal
 		[[nodiscard]] auto GetLogFileCountSetting() const noexcept { return _logFileCountSetting; }
 		[[nodiscard]] auto GetEnableMenuSetting() const noexcept { return _enableMenuSetting; }
 		[[nodiscard]] auto GetDoTryDryRunSetting() const noexcept { return _doTryDryRunSetting; }
-		[[nodiscard]] auto GetMarkCreatedFilesAsReadOnlySetting() const noexcept { return _markCreatedFilesAsReadOnlySetting; }
+		[[nodiscard]] auto GetCreateReadOnlyFilesSetting() const noexcept { return _createReadOnlyFilesSetting; }
 		[[nodiscard]] auto GetRunBenchmarkSetting() const noexcept { return _runBenchmarkSetting; }
 		[[nodiscard]] auto GetBenchmarkIterationCountSetting() const noexcept { return _benchmarkIterationCountSetting; }
 		[[nodiscard]] auto GetBenchmarkCasesSetting() const noexcept { return _benchmarkCasesSetting; }
@@ -33,7 +33,7 @@ namespace Plugin::Internal
 		REX::NotNull<std::shared_ptr<REX::Toml::Int32>> _logFileCountSetting;
 		REX::NotNull<std::shared_ptr<REX::Toml::Bool>> _enableMenuSetting;
 		REX::NotNull<std::shared_ptr<REX::Toml::Bool>> _doTryDryRunSetting;
-		REX::NotNull<std::shared_ptr<REX::Toml::Bool>> _markCreatedFilesAsReadOnlySetting;
+		REX::NotNull<std::shared_ptr<REX::Toml::Bool>> _createReadOnlyFilesSetting;
 		REX::NotNull<std::shared_ptr<REX::Toml::Bool>> _runBenchmarkSetting;
 		REX::NotNull<std::shared_ptr<REX::Toml::UInt32>> _benchmarkIterationCountSetting;
 		REX::NotNull<std::shared_ptr<REX::Toml::ValueArray>> _benchmarkCasesSetting;

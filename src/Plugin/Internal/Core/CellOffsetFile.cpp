@@ -2,7 +2,8 @@
 
 namespace Plugin::Internal::Core
 {
-	auto CellOffsetFile::LoadFromFile(const std::filesystem::path& a_path) -> std::expected<CellOffsetFile, REX::SystemError>
+	auto CellOffsetFile::LoadFromFile(const std::filesystem::path& a_path)
+		-> std::expected<CellOffsetFile, REX::SystemError>
 	{
 		auto fileStream = std::fstream(a_path, std::ios::in | std::ios::binary);
 		if (!fileStream.is_open()) {
@@ -79,6 +80,11 @@ namespace Plugin::Internal::Core
 
 	REX::SystemError CellOffsetFile::SaveToFile(const std::filesystem::path& a_path)
 	{
+		auto createDirsError = REX::SystemError();
+		if (!REX::CreateParentDirectories(a_path, createDirsError) && createDirsError.value() != REX::ERROR_NUMBER_SUCCESS) [[unlikely]] {
+			return createDirsError;
+		}
+
 		auto fileStream = std::fstream(a_path, std::ios::out | std::ios::trunc | std::ios::binary);
 		if (!fileStream.is_open()) {
 			return REX::CreateSystemError(REX::PosixErrorCode::io_error);
@@ -142,14 +148,14 @@ namespace Plugin::Internal::Core
 
 	REX::SystemError CellOffsetFile::MarkFileAsReadOnly(const std::filesystem::path& a_path) noexcept
 	{
-		constexpr auto READONLY_REMOVAL_FLAGS =
+		constexpr auto READ_ONLY_REMOVAL_FLAGS =
 			std::filesystem::perms::owner_write |
 			std::filesystem::perms::group_write |
 			std::filesystem::perms::others_write;
 
 		auto permissionsError = REX::SystemError();
 		std::filesystem::permissions(a_path,
-			READONLY_REMOVAL_FLAGS,
+			READ_ONLY_REMOVAL_FLAGS,
 			std::filesystem::perm_options::remove,
 			permissionsError);
 

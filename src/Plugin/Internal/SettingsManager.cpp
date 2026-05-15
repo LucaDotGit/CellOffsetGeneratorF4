@@ -7,7 +7,7 @@ namespace Plugin::Internal
 		  _logFileCountSetting(std::make_shared<REX::Toml::Int32>("Debug"s, "iLogFileCount"s, -1)),
 		  _enableMenuSetting(std::make_shared<REX::Toml::Bool>("General"s, "bEnableMenu"s, true)),
 		  _doTryDryRunSetting(std::make_shared<REX::Toml::Bool>("General"s, "bDoDryRun"s, false)),
-		  _markCreatedFilesAsReadOnlySetting(std::make_shared<REX::Toml::Bool>("General"s, "bMarkCreatedFilesAsReadOnly"s, true)),
+		  _createReadOnlyFilesSetting(std::make_shared<REX::Toml::Bool>("General"s, "bCreateReadOnlyFiles"s, true)),
 		  _runBenchmarkSetting(std::make_shared<REX::Toml::Bool>("Benchmark"s, "bRunBenchmark"s, false)),
 		  _benchmarkIterationCountSetting(std::make_shared<REX::Toml::UInt32>("Benchmark"s, "uiBenchmarkIterationCount"s, 100)),
 		  _benchmarkCasesSetting(std::make_shared<REX::Toml::ValueArray>("Benchmark"s, "kBenchmarkCases"s)),
@@ -18,7 +18,7 @@ namespace Plugin::Internal
 			_logFileCountSetting,
 			_enableMenuSetting,
 			_doTryDryRunSetting,
-			_markCreatedFilesAsReadOnlySetting,
+			_createReadOnlyFilesSetting,
 			_runBenchmarkSetting,
 			_benchmarkIterationCountSetting,
 			_benchmarkCasesSetting

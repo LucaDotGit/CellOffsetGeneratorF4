@@ -9,8 +9,8 @@ namespace Plugin::PluginManager
 	bool Setup(REX::NotNull<const F4SE::LoadInterface*> a_f4se)
 	{
 		static constinit auto OnceFlag = std::once_flag();
-		std::call_once(OnceFlag, [a_f4se]() {
-			F4SE::RegisterForOnLoad([]() {
+		std::call_once(OnceFlag, [a_f4se]() -> void {
+			F4SE::RegisterForOnLoad([]() -> void {
 				const auto& internalManager = Plugin::GetInternalManager();
 				internalManager->OnXseLoad();
 			});

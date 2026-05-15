@@ -17,9 +17,7 @@ namespace Plugin
 	static constexpr auto MENU_FLAGS = REX::EnumSet{
 		RE::UI_MENU_FLAGS::kPausesGame,
 		RE::UI_MENU_FLAGS::kUsesCursor,
-		RE::UI_MENU_FLAGS::kUsesMenuContext,
-		RE::UI_MENU_FLAGS::kDisablePauseMenu,
-		RE::UI_MENU_FLAGS::kAdvancesUnderPauseMenu
+		RE::UI_MENU_FLAGS::kDisablePauseMenu
 	};
 
 	static constexpr auto MENU_DEPTH = REX::Enum(RE::UI_DEPTH_PRIORITY::kMessage);
@@ -75,10 +73,12 @@ namespace Plugin
 		_benchmarkManager->RunBenchmarks_Before();
 
 		_coreManager->OnGameDataReady();
+
 		_benchmarkManager->RunBenchmarks_After();
 	}
 
-	auto GetInternalManager() -> const REX::NotNull<std::unique_ptr<InternalManager>>&
+	auto GetInternalManager()
+		-> const REX::NotNull<std::unique_ptr<InternalManager>>&
 	{
 		static const auto INSTANCE = REX::NotNull(std::make_unique<InternalManager>());
 		return INSTANCE;

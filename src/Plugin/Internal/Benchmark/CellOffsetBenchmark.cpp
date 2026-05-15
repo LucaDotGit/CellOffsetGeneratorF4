@@ -72,14 +72,14 @@ namespace Plugin::Internal::Benchmark
 		return result;
 	}
 
-	REX::SystemError CellOffsetBenchmark::SaveBenchmarkResult(
-		const std::filesystem::path& a_directoryPath,
-		const std::filesystem::path& a_fileExtension,
-		std::string_view a_extraData) const
+	REX::SystemError CellOffsetBenchmark::SaveBenchmarkResult(const std::filesystem::path& a_filePath) const
 	{
-		const auto filePath = GetBenchmarkFilePath(a_directoryPath, a_fileExtension, _creationTimePoint, a_extraData);
+		auto createDirsError = REX::SystemError();
+		if (!REX::CreateParentDirectories(a_filePath, createDirsError) && createDirsError.value() != REX::ERROR_NUMBER_SUCCESS) [[unlikely]] {
+			return createDirsError;
+		}
 
-		auto fileStream = std::fstream(filePath, std::ios::out | std::ios::trunc);
+		auto fileStream = std::fstream(a_filePath, std::ios::out | std::ios::trunc);
 		if (!fileStream.is_open()) {
 			return REX::CreateSystemError(REX::PosixErrorCode::io_error);
 		}
@@ -101,14 +101,13 @@ namespace Plugin::Internal::Benchmark
 		}
 	}
 
-	std::filesystem::path CellOffsetBenchmark::GetBenchmarkFilePath(
+	std::filesystem::path CellOffsetBenchmark::FormatBenchmarkFilePath(
 		const std::filesystem::path& a_directoryPath,
 		const std::filesystem::path& a_fileExtension,
-		std::chrono::system_clock::time_point a_timePoint,
 		std::string_view a_extraData)
 	{
 		const auto fileName = REX::Format("Benchmark_{}{}{}"sv,
-			a_timePoint.time_since_epoch().count(),
+			_creationTimePoint.time_since_epoch().count(),
 			a_extraData.empty() ? ""sv : REX::Format("_{}"sv, a_extraData),
 			a_fileExtension.generic_string());
 

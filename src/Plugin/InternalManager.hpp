@@ -40,5 +40,6 @@ namespace Plugin
 		REX::NotNull<std::shared_ptr<Internal::BenchmarkManager>> _benchmarkManager;
 	};
 
-	[[nodiscard]] auto GetInternalManager() -> const REX::NotNull<std::unique_ptr<InternalManager>>&;
+	[[nodiscard]] auto GetInternalManager()
+		-> const REX::NotNull<std::unique_ptr<InternalManager>>&;
 }

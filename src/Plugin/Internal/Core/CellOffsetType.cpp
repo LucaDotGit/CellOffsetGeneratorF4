@@ -18,7 +18,7 @@ namespace Plugin::Internal::Core
 
 		auto* ptr = RE::calloc<CellOffsetType>(a_count);
 		if (!ptr) [[unlikely]] {
-			REX::AllocationFail("Failed to allocate cell offset buffer."sv);
+			throw std::bad_alloc();
 		}
 
 		return {

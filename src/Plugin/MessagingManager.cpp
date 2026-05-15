@@ -9,7 +9,7 @@ namespace Plugin::MessagingManager
 		static constexpr auto FUNCTION_NAME = REX::GetCurrentFunctionName();
 
 		static constinit auto OnceFlag = std::once_flag();
-		std::call_once(OnceFlag, [a_messaging]() {
+		std::call_once(OnceFlag, [a_messaging]() -> void {
 			REX::LogDebug("{}"sv,
 				FUNCTION_NAME);
 
