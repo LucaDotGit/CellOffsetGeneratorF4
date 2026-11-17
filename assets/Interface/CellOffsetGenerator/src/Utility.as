@@ -16,6 +16,9 @@ package
 		public static const BODY_TEXT:String = translateText("$CellOffsetGenerator_BodyText");
 		public static const BODY_TEXT_INITIALIZING:String = translateText("$CellOffsetGenerator_BodyText_Initializing");
 
+		public static const RELATIVE_WIDTH:Number = 0.3;
+		public static const RELATIVE_HEIGHT:Number = 0.03;
+
 		public static const LIGHT_COLOR:uint = 0xEEEEEE;
 		public static const DARK_COLOR:uint = 0x333333;
 

@@ -8,5 +8,6 @@ namespace Plugin::Internal::Core
 
 	using CellOffsetBuffer = std::unique_ptr<CellOffsetType, decltype(&DeleteCellOffsetBuffer)>;
 
-	CellOffsetBuffer CreateCellOffsetBuffer(std::size_t a_count);
+	auto CreateCellOffsetBuffer(std::size_t a_count) -> CellOffsetBuffer;
+	auto CreateCellOffsetBufferForOverwrite(std::size_t a_count) -> CellOffsetBuffer;
 }

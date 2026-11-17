@@ -3,28 +3,23 @@
 namespace Plugin::Internal::Benchmark
 {
 	CellOffsetBenchmarkCase::CellOffsetBenchmarkCase(
-		const REX::NotNull<RE::TESWorldSpace*>& a_worldSpace,
+		REX::NotNull<RE::TESWorldSpace*> a_worldSpace,
 		std::int32_t a_cellX,
 		std::int32_t a_cellY,
-		std::uint32_t a_iterationCount)
-		: _worldSpace(a_worldSpace),
-		  _cellX(a_cellX),
-		  _cellY(a_cellY),
-		  _iterationCount(a_iterationCount)
+		std::uint32_t a_iterationCount) :
+		_worldSpace(a_worldSpace),
+		_cellX(a_cellX),
+		_cellY(a_cellY),
+		_iterationCount(a_iterationCount)
 	{
 	}
 
-	void CellOffsetBenchmarkCase::RunBenchmark()
+	void CellOffsetBenchmarkCase::RunBenchmark(const RE::TESDataHandler& a_dataHandler)
 	{
-		const auto* dataHandler = RE::TESDataHandler::GetSingleton();
-		if (!dataHandler) [[unlikely]] {
-			REX::Fail("Failed to get the game's data handler."sv);
-		}
-
 		_stopwatch.Start();
 
-		for (auto i = 0ui32; i < _iterationCount; i++) {
-			RunBenchmarkImpl(dataHandler);
+		for (auto i = static_cast<decltype(_iterationCount)>(0); i < _iterationCount; i++) {
+			RunBenchmarkImpl(a_dataHandler);
 		}
 
 		_stopwatch.Stop();
@@ -35,18 +30,19 @@ namespace Plugin::Internal::Benchmark
 		_stopwatch.Reset();
 	}
 
-	void CellOffsetBenchmarkCase::RunBenchmarkImpl(const RE::TESDataHandler* a_dataHandler)
+	auto CellOffsetBenchmarkCase::GetWorldSpaceByEditorId(const RE::BSFixedString& a_editorId) -> RE::TESWorldSpace*
 	{
-		for (auto* worldSpace : a_dataHandler->GetFormArray<RE::TESWorldSpace>()) {
-			if (!worldSpace) {
+		return RE::TESForm::FindFormByEditorID<RE::TESWorldSpace>(a_editorId);
+	}
+
+	void CellOffsetBenchmarkCase::RunBenchmarkImpl(const RE::TESDataHandler& a_dataHandler)
+	{
+		for (auto* worldSpace : a_dataHandler.GetFormArray<RE::TESWorldSpace>()) {
+			if (!worldSpace || worldSpace != _worldSpace.get()) {
 				continue;
 			}
 
-			if (worldSpace != _worldSpace.get()) {
-				continue;
-			}
-
-			auto* worldSpaceFiles = worldSpace->sourceFiles.array;
+			const auto* worldSpaceFiles = worldSpace->sourceFiles.array;
 			if (!worldSpaceFiles) {
 				continue;
 			}

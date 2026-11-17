@@ -4,40 +4,31 @@
 
 namespace Plugin::Internal
 {
-	PatchesManager::PatchesManager()
-		: _cellOffsetPatches(std::make_shared<Core::CellOffsetPatches>())
+	PatchesManager::PatchesManager(const REX::NotNull<std::shared_ptr<REX::Logging::ILogger>>& a_logger) :
+		_logger(a_logger),
+		_cellOffsetPatches(std::make_shared<Core::CellOffsetPatches>(a_logger))
 	{
 	}
 
 	PatchesManager::~PatchesManager() noexcept = default;
 
-	void PatchesManager::OnXseLoad()
+	void PatchesManager::OnApiLoad(const REX::NotNull<std::shared_ptr<REL::HookList>>& a_hookList)
 	{
-		static constexpr auto FUNCTION_NAME = REX::GetCurrentFunctionName();
+		_logger->LogDebug("{}"sv, REX::GetCurrentFunctionName());
 
-		static constinit auto OnceFlag = std::once_flag();
-		std::call_once(OnceFlag, [this]() -> void {
-			REX::LogDebug("{}"sv,
-				FUNCTION_NAME);
-
-			const auto& hookStore = REL::GetHookStore();
-
-			_cellOffsetPatches->OnXseLoad(*(hookStore.get()));
-		});
+		_cellOffsetPatches->OnApiLoad(a_hookList);
 	}
 
-	void PatchesManager::Enable()
+	void PatchesManager::Enable() const
 	{
-		REX::LogDebug("{}"sv,
-			REX::GetCurrentFunctionName());
+		_logger->LogDebug("{}"sv, REX::GetCurrentFunctionName());
 
 		_cellOffsetPatches->Enable();
 	}
 
-	void PatchesManager::Disable()
+	void PatchesManager::Disable() const
 	{
-		REX::LogDebug("{}"sv,
-			REX::GetCurrentFunctionName());
+		_logger->LogDebug("{}"sv, REX::GetCurrentFunctionName());
 
 		_cellOffsetPatches->Disable();
 	}

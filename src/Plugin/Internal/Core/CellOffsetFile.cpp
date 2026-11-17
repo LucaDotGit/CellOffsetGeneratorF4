@@ -2,163 +2,176 @@
 
 namespace Plugin::Internal::Core
 {
-	auto CellOffsetFile::LoadFromFile(const std::filesystem::path& a_path)
+	auto CellOffsetFile::LoadFromFile(std::filesystem::path a_path) noexcept
 		-> std::expected<CellOffsetFile, REX::SystemError>
 	{
-		auto fileStream = std::fstream(a_path, std::ios::in | std::ios::binary);
-		if (!fileStream.is_open()) {
-			return std::unexpected(REX::CreateSystemError(REX::PosixErrorCode::no_such_file_or_directory));
+		auto fileStream = REX::FileStream::Open(
+			std::move(a_path),
+			REX::FileMode::Open,
+			REX::FileAccess::Read,
+			REX::FileShare::Read,
+			REX::FileOptions::SequentialScan);
+		if (!fileStream.has_value()) [[unlikely]] {
+			return std::unexpected(fileStream.error());
 		}
 
-		auto cellOffsetFile = CellOffsetFile();
-		auto& headerInfo = cellOffsetFile.headerInfo;
-		auto& offsetInfo = cellOffsetFile.offsetInfo;
-
-		fileStream.read(reinterpret_cast<char*>(std::addressof(headerInfo.headerId)), sizeof(decltype(headerInfo.headerId)));
-		if (!fileStream.good()) {
-			return std::unexpected(REX::CreateSystemError(REX::PosixErrorCode::io_error));
+		const auto readHeaderHash = fileStream->Read<std::uint32_t>();
+		if (!readHeaderHash.has_value()) [[unlikely]] {
+			return std::unexpected(readHeaderHash.error());
 		}
 
-		fileStream.read(reinterpret_cast<char*>(std::addressof(headerInfo.headerVersion)), sizeof(decltype(headerInfo.headerVersion)));
-		if (!fileStream.good()) {
-			return std::unexpected(REX::CreateSystemError(REX::PosixErrorCode::io_error));
+		const auto readHeaderVersion = fileStream->Read<std::uint32_t>();
+		if (!readHeaderVersion.has_value()) [[unlikely]] {
+			return std::unexpected(readHeaderVersion.error());
 		}
 
-		if (headerInfo.headerId != HEADER_ID || headerInfo.headerVersion != HEADER_VERSION) {
-			return std::unexpected(REX::CreateSystemError(REX::PosixErrorCode::illegal_byte_sequence));
+		if (readHeaderHash.value() != HeaderInfo::HEADER_HASH ||
+			readHeaderVersion.value() != HeaderInfo::HEADER_VERSION) [[unlikely]] {
+			return std::unexpected(REX::CreateSystemError(REX::PosixErrorCode::bad_message));
 		}
 
-		fileStream.read(reinterpret_cast<char*>(std::addressof(headerInfo.fileHash)), sizeof(decltype(headerInfo.fileHash)));
-		if (!fileStream.good()) {
-			return std::unexpected(REX::CreateSystemError(REX::PosixErrorCode::io_error));
+		const auto readHeaderFileHash = fileStream->Read<Core::HashType>();
+		if (!readHeaderFileHash.has_value()) [[unlikely]] {
+			return std::unexpected(readHeaderFileHash.error());
 		}
 
-		fileStream.read(reinterpret_cast<char*>(std::addressof(offsetInfo.maxOffsetX)), sizeof(decltype(offsetInfo.maxOffsetX)));
-		if (!fileStream.good()) {
-			return std::unexpected(REX::CreateSystemError(REX::PosixErrorCode::io_error));
+		const auto readOffsetMaxX = fileStream->Read<std::int32_t>();
+		if (!readOffsetMaxX.has_value()) [[unlikely]] {
+			return std::unexpected(readOffsetMaxX.error());
 		}
 
-		fileStream.read(reinterpret_cast<char*>(std::addressof(offsetInfo.maxOffsetY)), sizeof(decltype(offsetInfo.maxOffsetY)));
-		if (!fileStream.good()) {
-			return std::unexpected(REX::CreateSystemError(REX::PosixErrorCode::io_error));
+		const auto readOffsetMaxY = fileStream->Read<std::int32_t>();
+		if (!readOffsetMaxY.has_value()) [[unlikely]] {
+			return std::unexpected(readOffsetMaxY.error());
 		}
 
-		fileStream.read(reinterpret_cast<char*>(std::addressof(offsetInfo.offsetHash)), sizeof(decltype(offsetInfo.offsetHash)));
-		if (!fileStream.good()) {
-			return std::unexpected(REX::CreateSystemError(REX::PosixErrorCode::io_error));
+		const auto readOffsetHash = fileStream->Read<Core::HashType>();
+		if (!readOffsetHash.has_value()) [[unlikely]] {
+			return std::unexpected(readOffsetHash.error());
 		}
 
-		auto offsetBufferSize = static_cast<decltype(offsetInfo.offsetCount)>(0);
-		fileStream.read(reinterpret_cast<char*>(std::addressof(offsetBufferSize)), sizeof(decltype(offsetBufferSize)));
-
-		if (!fileStream.good()) {
-			return std::unexpected(REX::CreateSystemError(REX::PosixErrorCode::io_error));
+		const auto readOffsetCount = fileStream->Read<std::uint32_t>();
+		if (!readOffsetCount.has_value()) [[unlikely]] {
+			return std::unexpected(readOffsetCount.error());
 		}
 
-		if (offsetBufferSize == 0) {
-			if (fileStream.peek() != std::char_traits<char>::eof()) {
-				return std::unexpected(REX::CreateSystemError(REX::PosixErrorCode::illegal_byte_sequence));
-			}
+		auto offsetBuffer = Core::CreateCellOffsetBufferForOverwrite(readOffsetCount.value());
 
-			offsetInfo.offsetCount = 0;
-			offsetInfo.offsetBuffer.reset();
-			return std::move(cellOffsetFile);
+		const auto readOffsetBufferError = fileStream->Read(offsetBuffer.get(), readOffsetCount.value());
+		if (readOffsetBufferError.value() != REX::ERROR_NUMBER_SUCCESS) [[unlikely]] {
+			return std::unexpected(readOffsetBufferError);
 		}
 
-		auto offsetBuffer = Core::CreateCellOffsetBuffer(offsetBufferSize);
-		fileStream.read(reinterpret_cast<char*>(offsetBuffer.get()), static_cast<std::streamsize>(sizeof(Core::CellOffsetType) * offsetBufferSize));
-
-		if (!fileStream.good()) {
-			return std::unexpected(REX::CreateSystemError(REX::PosixErrorCode::io_error));
+		const auto endOfFileResult = fileStream->Peek();
+		if (endOfFileResult.has_value()) {
+			return std::unexpected(REX::CreateSystemError(REX::PosixErrorCode::message_size));
 		}
 
-		offsetInfo.offsetCount = offsetBufferSize;
-		offsetInfo.offsetBuffer = std::move(offsetBuffer);
-
-		return std::move(cellOffsetFile);
+		return CellOffsetFile(
+			HeaderInfo(readHeaderFileHash.value()),
+			CellInfo(
+				readOffsetMaxX.value(),
+				readOffsetMaxY.value(),
+				readOffsetHash.value(),
+				readOffsetCount.value(),
+				std::move(offsetBuffer)));
 	}
 
-	REX::SystemError CellOffsetFile::SaveToFile(const std::filesystem::path& a_path)
+	auto CellOffsetFile::SaveToFile(std::filesystem::path a_path) const noexcept -> REX::SystemError
 	{
-		auto createDirsError = REX::SystemError();
-		if (!REX::CreateParentDirectories(a_path, createDirsError) && createDirsError.value() != REX::ERROR_NUMBER_SUCCESS) [[unlikely]] {
-			return createDirsError;
+		const auto createDirsResult = REX::CreateParentDirectories(a_path);
+		if (!createDirsResult.has_value() && createDirsResult.error().value() != REX::ERROR_NUMBER_SUCCESS)
+			[[unlikely]] {
+			return createDirsResult.error();
 		}
 
-		auto fileStream = std::fstream(a_path, std::ios::out | std::ios::trunc | std::ios::binary);
-		if (!fileStream.is_open()) {
-			return REX::CreateSystemError(REX::PosixErrorCode::io_error);
+		{
+			std::ignore = RemoveFileReadOnlyFlag(a_path);
 		}
 
-		fileStream.write(reinterpret_cast<const char*>(std::addressof(headerInfo.headerId)), sizeof(decltype(headerInfo.headerId)));
-		if (!fileStream.good()) {
-			return REX::CreateSystemError(REX::PosixErrorCode::io_error);
+		auto fileStream = REX::FileStream::Open(
+			std::move(a_path),
+			REX::FileMode::Create,
+			REX::FileAccess::Write,
+			REX::FileShare::Read,
+			REX::FileOptions::SequentialScan);
+		if (!fileStream.has_value()) [[unlikely]] {
+			return fileStream.error();
 		}
 
-		fileStream.write(reinterpret_cast<const char*>(std::addressof(headerInfo.headerVersion)), sizeof(decltype(headerInfo.headerVersion)));
-		if (!fileStream.good()) {
-			return REX::CreateSystemError(REX::PosixErrorCode::io_error);
+		const auto& headerInfo = GetHeaderInfo();
+
+		const auto writeHeaderHashError = fileStream->Write(headerInfo.GetHeaderHash());
+		if (writeHeaderHashError.value() != REX::ERROR_NUMBER_SUCCESS) [[unlikely]] {
+			return writeHeaderHashError;
 		}
 
-		fileStream.write(reinterpret_cast<const char*>(std::addressof(headerInfo.fileHash)), sizeof(decltype(headerInfo.fileHash)));
-		if (!fileStream.good()) {
-			return REX::CreateSystemError(REX::PosixErrorCode::io_error);
+		const auto writeHeaderVersionError = fileStream->Write(headerInfo.GetHeaderVersion());
+		if (writeHeaderVersionError.value() != REX::ERROR_NUMBER_SUCCESS) [[unlikely]] {
+			return writeHeaderVersionError;
 		}
 
-		fileStream.write(reinterpret_cast<const char*>(std::addressof(offsetInfo.maxOffsetX)), sizeof(decltype(offsetInfo.maxOffsetX)));
-		if (!fileStream.good()) {
-			return REX::CreateSystemError(REX::PosixErrorCode::io_error);
+		const auto writeHeaderFileHashError = fileStream->Write(headerInfo.GetFileHash());
+		if (writeHeaderFileHashError.value() != REX::ERROR_NUMBER_SUCCESS) [[unlikely]] {
+			return writeHeaderFileHashError;
 		}
 
-		fileStream.write(reinterpret_cast<const char*>(std::addressof(offsetInfo.maxOffsetY)), sizeof(decltype(offsetInfo.maxOffsetY)));
-		if (!fileStream.good()) {
-			return REX::CreateSystemError(REX::PosixErrorCode::io_error);
+		const auto& cellInfo = GetCellInfo();
+
+		const auto writeCellMaxXError = fileStream->Write(cellInfo.GetMaxOffsetX());
+		if (writeCellMaxXError.value() != REX::ERROR_NUMBER_SUCCESS) [[unlikely]] {
+			return writeCellMaxXError;
 		}
 
-		fileStream.write(reinterpret_cast<const char*>(std::addressof(offsetInfo.offsetHash)), sizeof(decltype(offsetInfo.offsetHash)));
-		if (!fileStream.good()) {
-			return REX::CreateSystemError(REX::PosixErrorCode::io_error);
+		const auto writeCellMaxYError = fileStream->Write(cellInfo.GetMaxOffsetY());
+		if (writeCellMaxYError.value() != REX::ERROR_NUMBER_SUCCESS) [[unlikely]] {
+			return writeCellMaxYError;
 		}
 
-		const auto offsetCount = offsetInfo.offsetCount;
-
-		fileStream.write(reinterpret_cast<const char*>(std::addressof(offsetCount)), sizeof(decltype(offsetCount)));
-		if (!fileStream.good()) {
-			return REX::CreateSystemError(REX::PosixErrorCode::io_error);
+		const auto writeCellHashError = fileStream->Write(cellInfo.GetOffsetHash());
+		if (writeCellHashError.value() != REX::ERROR_NUMBER_SUCCESS) [[unlikely]] {
+			return writeCellHashError;
 		}
 
-		const auto& offsetBuffer = offsetInfo.offsetBuffer;
-		if (offsetCount == 0 || !offsetBuffer) {
+		const auto writeCellCountError = fileStream->Write(cellInfo.GetOffsetCount());
+		if (writeCellCountError.value() != REX::ERROR_NUMBER_SUCCESS) [[unlikely]] {
+			return writeCellCountError;
+		}
+
+		const auto& offsetBuffer = cellInfo.GetOffsetBuffer();
+		if (!offsetBuffer) {
 			return REX::CreateSystemError(REX::ERROR_NUMBER_SUCCESS);
 		}
 
-		fileStream.write(reinterpret_cast<const char*>(offsetBuffer.get()), static_cast<std::streamsize>(sizeof(Core::CellOffsetType) * offsetCount));
-		if (!fileStream.good()) {
-			return REX::CreateSystemError(REX::PosixErrorCode::io_error);
+		const auto writeOffsetBufferError = fileStream->Write(offsetBuffer.get(), cellInfo.GetOffsetCount());
+		if (writeOffsetBufferError.value() != REX::ERROR_NUMBER_SUCCESS) [[unlikely]] {
+			return writeOffsetBufferError;
 		}
 
-		fileStream.flush();
-		if (!fileStream.good()) {
-			return REX::CreateSystemError(REX::PosixErrorCode::io_error);
-		}
-
-		fileStream.close();
 		return REX::CreateSystemError(REX::ERROR_NUMBER_SUCCESS);
 	}
 
-	REX::SystemError CellOffsetFile::MarkFileAsReadOnly(const std::filesystem::path& a_path) noexcept
+	auto CellOffsetFile::ChangeFileWritePermissions(
+		const std::filesystem::path& a_path,
+		std::filesystem::perm_options a_options) noexcept -> REX::SystemError
 	{
-		constexpr auto READ_ONLY_REMOVAL_FLAGS =
-			std::filesystem::perms::owner_write |
-			std::filesystem::perms::group_write |
-			std::filesystem::perms::others_write;
+		constexpr auto ALL_WRITE_FLAGS = std::filesystem::perms::owner_write |
+										 std::filesystem::perms::group_write |
+										 std::filesystem::perms::others_write;
 
 		auto permissionsError = REX::SystemError();
-		std::filesystem::permissions(a_path,
-			READ_ONLY_REMOVAL_FLAGS,
-			std::filesystem::perm_options::remove,
-			permissionsError);
+		std::filesystem::permissions(a_path, ALL_WRITE_FLAGS, a_options, permissionsError);
 
 		return permissionsError;
+	}
+
+	auto CellOffsetFile::AddFileReadOnlyFlag(const std::filesystem::path& a_path) noexcept -> REX::SystemError
+	{
+		return ChangeFileWritePermissions(a_path, std::filesystem::perm_options::remove);
+	}
+
+	auto CellOffsetFile::RemoveFileReadOnlyFlag(const std::filesystem::path& a_path) noexcept -> REX::SystemError
+	{
+		return ChangeFileWritePermissions(a_path, std::filesystem::perm_options::add);
 	}
 }

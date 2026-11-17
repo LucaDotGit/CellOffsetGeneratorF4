@@ -6,5 +6,6 @@
 
 namespace Plugin
 {
+	using namespace REX::Literals;
 	using namespace std::literals;
 }

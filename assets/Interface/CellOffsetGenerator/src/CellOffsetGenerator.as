@@ -111,6 +111,8 @@ package
 
 		private function onAddedToStage(event:Event):void
 		{
+			trace("CellOffsetGenerator.onAddedToStage: " + event);
+
 			removeEventListener(Event.ADDED_TO_STAGE, onAddedToStage);
 
 			setup();
@@ -128,8 +130,8 @@ package
 			var stageWidth:Number = stage.stageWidth;
 			var stageHeight:Number = stage.stageHeight;
 
-			_tempProgressBarWidth = stageWidth * 0.3;
-			_tempProgressBarHeight = stageHeight * 0.03;
+			_tempProgressBarWidth = stageWidth * Utility.RELATIVE_WIDTH;
+			_tempProgressBarHeight = stageHeight * Utility.RELATIVE_HEIGHT;
 			_tempProgressBarX = (stageWidth - _tempProgressBarWidth) / 2;
 			_tempProgressBarY = _tempProgressBarHeight / 2;
 

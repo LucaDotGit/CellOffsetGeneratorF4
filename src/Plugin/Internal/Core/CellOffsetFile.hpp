@@ -8,61 +8,187 @@ namespace Plugin::Internal::Core
 	class CellOffsetFile final
 	{
 	public:
-		inline static constexpr auto HEADER_ID = REX::HashCrc32("CellOffsetFile"sv);
-		inline static constexpr auto HEADER_VERSION = 1ui32;
-
 		class HeaderInfo final
 		{
 		public:
-			HeaderInfo() = default;
+			inline static constexpr auto HEADER_HASH = REX::HashCrc32("CellOffsetFile"sv);
+			inline static constexpr auto HEADER_VERSION = static_cast<std::uint32_t>(1);
+
+			explicit HeaderInfo(Core::HashType a_fileHash) noexcept :
+				_fileHash(a_fileHash)
+			{
+			}
+
 			~HeaderInfo() noexcept = default;
 
 			HeaderInfo(const HeaderInfo&) = delete;
 			HeaderInfo(HeaderInfo&&) noexcept = default;
 
-			HeaderInfo& operator=(const HeaderInfo&) = delete;
-			HeaderInfo& operator=(HeaderInfo&&) noexcept = default;
+			auto operator=(const HeaderInfo&) -> HeaderInfo& = delete;
+			auto operator=(HeaderInfo&&) noexcept -> HeaderInfo& = default;
 
-			std::uint32_t headerId{ HEADER_ID };
-			std::uint32_t headerVersion{ HEADER_VERSION };
-			Core::HashType fileHash{ 0 };
+			[[nodiscard]]
+			auto GetHeaderHash() const noexcept
+			{
+				return _headerHash;
+			}
+
+			[[nodiscard]]
+			auto GetHeaderVersion() const noexcept
+			{
+				return _headerVersion;
+			}
+
+			[[nodiscard]]
+			auto GetFileHash() const noexcept
+			{
+				return _fileHash;
+			}
+
+		private:
+			std::uint32_t _headerHash{HEADER_HASH};
+			std::uint32_t _headerVersion{HEADER_VERSION};
+			Core::HashType _fileHash;
 		};
 
-		class OffsetInfo final
+		class CellInfo final
 		{
 		public:
-			OffsetInfo() = default;
-			~OffsetInfo() noexcept = default;
+			explicit CellInfo(
+				std::int32_t a_maxOffsetX,
+				std::int32_t a_maxOffsetY,
+				Core::HashType a_offsetHash,
+				std::uint32_t a_offsetCount) noexcept :
+				_maxOffsetX(a_maxOffsetX),
+				_maxOffsetY(a_maxOffsetY),
+				_offsetHash(a_offsetHash),
+				_offsetCount(a_offsetCount)
+			{
+			}
 
-			OffsetInfo(const OffsetInfo&) = delete;
-			OffsetInfo(OffsetInfo&&) noexcept = default;
+			explicit CellInfo(
+				std::int32_t a_maxOffsetX,
+				std::int32_t a_maxOffsetY,
+				Core::HashType a_offsetHash,
+				std::uint32_t a_offsetCount,
+				Core::CellOffsetBuffer a_offsetBuffer) noexcept :
+				_maxOffsetX(a_maxOffsetX),
+				_maxOffsetY(a_maxOffsetY),
+				_offsetHash(a_offsetHash),
+				_offsetCount(a_offsetCount),
+				_offsetBuffer(std::move(a_offsetBuffer))
+			{
+			}
 
-			OffsetInfo& operator=(const OffsetInfo&) = delete;
-			OffsetInfo& operator=(OffsetInfo&&) noexcept = default;
+			~CellInfo() noexcept = default;
 
-			std::int32_t maxOffsetX{ 0 };
-			std::int32_t maxOffsetY{ 0 };
-			Core::HashType offsetHash{ 0 };
-			std::uint32_t offsetCount{ 0 };
-			Core::CellOffsetBuffer offsetBuffer{ nullptr, Core::DeleteCellOffsetBuffer };
+			CellInfo(const CellInfo&) = delete;
+			CellInfo(CellInfo&&) noexcept = default;
+
+			auto operator=(const CellInfo&) -> CellInfo& = delete;
+			auto operator=(CellInfo&&) noexcept -> CellInfo& = default;
+
+			[[nodiscard]]
+			auto GetMaxOffsetX() const noexcept
+			{
+				return _maxOffsetX;
+			}
+
+			[[nodiscard]]
+			auto GetMaxOffsetY() const noexcept
+			{
+				return _maxOffsetY;
+			}
+
+			[[nodiscard]]
+			auto GetOffsetHash() const noexcept
+			{
+				return _offsetHash;
+			}
+
+			[[nodiscard]]
+			auto GetOffsetCount() const noexcept
+			{
+				return _offsetCount;
+			}
+
+			[[nodiscard]]
+			auto GetOffsetBuffer() & noexcept -> auto&
+			{
+				return _offsetBuffer;
+			}
+
+			[[nodiscard]]
+			auto GetOffsetBuffer() && noexcept -> auto&&
+			{
+				return std::move(_offsetBuffer);
+			}
+
+			[[nodiscard]]
+			auto GetOffsetBuffer() const& noexcept -> const auto&
+			{
+				return _offsetBuffer;
+			}
+
+			[[nodiscard]]
+			auto GetOffsetBuffer() const&& noexcept -> const auto&&
+			{
+				return std::move(_offsetBuffer);
+			}
+
+		private:
+			std::int32_t _maxOffsetX;
+			std::int32_t _maxOffsetY;
+			Core::HashType _offsetHash;
+			std::uint32_t _offsetCount;
+			Core::CellOffsetBuffer _offsetBuffer{nullptr, nullptr};
 		};
 
-		CellOffsetFile() = default;
+		explicit CellOffsetFile(HeaderInfo a_headerInfo, CellInfo a_cellInfo) noexcept :
+			_headerInfo(std::move(a_headerInfo)),
+			_cellInfo(std::move(a_cellInfo))
+		{
+		}
+
 		~CellOffsetFile() noexcept = default;
 
 		CellOffsetFile(const CellOffsetFile&) = delete;
 		CellOffsetFile(CellOffsetFile&&) noexcept = default;
 
-		CellOffsetFile& operator=(const CellOffsetFile&) = delete;
-		CellOffsetFile& operator=(CellOffsetFile&&) noexcept = default;
+		auto operator=(const CellOffsetFile&) -> CellOffsetFile& = delete;
+		auto operator=(CellOffsetFile&&) noexcept -> CellOffsetFile& = default;
 
-		[[nodiscard]] static auto LoadFromFile(const std::filesystem::path& a_path)
+		[[nodiscard]]
+		auto GetHeaderInfo() const noexcept -> const auto&
+		{
+			return _headerInfo;
+		}
+
+		[[nodiscard]]
+		auto GetCellInfo() noexcept -> auto&
+		{
+			return _cellInfo;
+		}
+
+		[[nodiscard]]
+		auto GetCellInfo() const noexcept -> const auto&
+		{
+			return _cellInfo;
+		}
+
+		[[nodiscard]]
+		static auto LoadFromFile(std::filesystem::path a_path) noexcept
 			-> std::expected<CellOffsetFile, REX::SystemError>;
-		REX::SystemError SaveToFile(const std::filesystem::path& a_path);
+		auto SaveToFile(std::filesystem::path a_path) const noexcept -> REX::SystemError;
 
-		static REX::SystemError MarkFileAsReadOnly(const std::filesystem::path& a_path) noexcept;
+		static auto ChangeFileWritePermissions(
+			const std::filesystem::path& a_path,
+			std::filesystem::perm_options a_options) noexcept -> REX::SystemError;
+		static auto AddFileReadOnlyFlag(const std::filesystem::path& a_path) noexcept -> REX::SystemError;
+		static auto RemoveFileReadOnlyFlag(const std::filesystem::path& a_path) noexcept -> REX::SystemError;
 
-		HeaderInfo headerInfo;
-		OffsetInfo offsetInfo;
+	private:
+		HeaderInfo _headerInfo;
+		CellInfo _cellInfo;
 	};
 }

@@ -13,34 +13,34 @@ namespace Plugin::Internal::Benchmark
 		CellOffsetBenchmark(const CellOffsetBenchmark&) = delete;
 		CellOffsetBenchmark(CellOffsetBenchmark&&) noexcept = default;
 
-		CellOffsetBenchmark& operator=(const CellOffsetBenchmark&) = delete;
-		CellOffsetBenchmark& operator=(CellOffsetBenchmark&&) noexcept = default;
+		auto operator=(const CellOffsetBenchmark&) -> CellOffsetBenchmark& = delete;
+		auto operator=(CellOffsetBenchmark&&) noexcept -> CellOffsetBenchmark& = default;
 
-		[[nodiscard]] auto GetCreationTimePoint() const noexcept { return _creationTimePoint; }
-
-		bool CreateAndAddBenchmarkCase(
-			std::string_view a_worldSpaceEditorId,
-			std::int32_t a_x,
-			std::int32_t a_y,
-			std::uint32_t a_iterationCount);
+		[[nodiscard]]
+		auto GetCreationTimePoint() const noexcept
+		{
+			return _creationTimePoint;
+		}
 
 		void AddBenchmarkCase(REX::NotNull<std::shared_ptr<CellOffsetBenchmarkCase>> a_benchmark);
 
-		void RunBenchmark();
+		void AddBenchmarkCases(std::span<const REX::NotNull<std::shared_ptr<CellOffsetBenchmarkCase>>> a_benchmarks);
 
-		[[nodiscard]] std::string FormatBenchmarkResult() const;
+		void RunBenchmark(const RE::TESDataHandler& a_dataHandler);
 
-		REX::SystemError SaveBenchmarkResult(const std::filesystem::path& a_filePath) const;
+		[[nodiscard]]
+		auto FormatBenchmarkResult() const -> std::string;
 
 		void ClearBenchmarkResult() noexcept;
 
-		[[nodiscard]] std::filesystem::path FormatBenchmarkFilePath(
+		[[nodiscard]]
+		auto FormatBenchmarkFilePath(
 			const std::filesystem::path& a_directoryPath,
 			const std::filesystem::path& a_fileExtension,
-			std::string_view a_extraData = {});
+			std::string_view a_extraData = {}) -> std::filesystem::path;
 
 	private:
-		std::chrono::system_clock::time_point _creationTimePoint{ std::chrono::system_clock::now() };
+		std::chrono::system_clock::time_point _creationTimePoint{std::chrono::system_clock::now()};
 		std::vector<REX::NotNull<std::shared_ptr<CellOffsetBenchmarkCase>>> _benchmarkCases;
 	};
 }

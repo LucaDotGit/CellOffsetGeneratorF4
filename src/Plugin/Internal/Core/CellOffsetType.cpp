@@ -7,13 +7,10 @@ namespace Plugin::Internal::Core
 		RE::free(a_ptr);
 	}
 
-	CellOffsetBuffer CreateCellOffsetBuffer(std::size_t a_count)
+	auto CreateCellOffsetBuffer(std::size_t a_count) -> CellOffsetBuffer
 	{
 		if (a_count == 0) {
-			return {
-				nullptr,
-				DeleteCellOffsetBuffer
-			};
+			return {nullptr, nullptr};
 		}
 
 		auto* ptr = RE::calloc<CellOffsetType>(a_count);
@@ -21,9 +18,20 @@ namespace Plugin::Internal::Core
 			throw std::bad_alloc();
 		}
 
-		return {
-			ptr,
-			DeleteCellOffsetBuffer
-		};
+		return {ptr, DeleteCellOffsetBuffer};
+	}
+
+	auto CreateCellOffsetBufferForOverwrite(std::size_t a_count) -> CellOffsetBuffer
+	{
+		if (a_count == 0) {
+			return {nullptr, nullptr};
+		}
+
+		auto* ptr = RE::malloc<CellOffsetType>(a_count);
+		if (!ptr) [[unlikely]] {
+			throw std::bad_alloc();
+		}
+
+		return {ptr, DeleteCellOffsetBuffer};
 	}
 }

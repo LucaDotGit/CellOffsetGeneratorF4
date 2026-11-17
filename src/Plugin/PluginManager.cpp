@@ -6,29 +6,37 @@
 
 namespace Plugin::PluginManager
 {
-	bool Setup(REX::NotNull<const F4SE::LoadInterface*> a_f4se)
+	auto Setup(REX::NotNull<const F4SE::LoadInterface*> a_interface) -> bool
 	{
 		static constinit auto OnceFlag = std::once_flag();
-		std::call_once(OnceFlag, [a_f4se]() -> void {
-			F4SE::RegisterForOnLoad([]() -> void {
-				const auto& internalManager = Plugin::GetInternalManager();
-				internalManager->OnXseLoad();
-			});
+		std::call_once(OnceFlag, [a_interface]() -> void {
+			auto& internalManager = Plugin::InternalManager::GetSingleton();
 
-			const auto& internalManager = Plugin::GetInternalManager();
+			const auto settingsManager = internalManager.GetSettingsManager();
+			settingsManager->OnSettingsLoad();
 
-			const auto settingsManager = internalManager->GetSettingsManager();
-			settingsManager->LoadSettings();
+			const auto logMinLevel = settingsManager->GetLogMinLevelSetting()->GetValue();
+			const auto logRotationCount = settingsManager->GetLogRotationCountSetting()->GetValue();
+			const auto logRotationByteSize = settingsManager->GetLogRotationByteSizeSetting()->GetValue();
 
-			const auto logLevel = static_cast<REX::LogLevel>(settingsManager->GetLogLevelSetting()->GetValue());
-			const auto logFileCount = static_cast<std::size_t>(settingsManager->GetLogFileCountSetting()->GetValue());
-			const auto initInfo = F4SE::InitInfo{
-				.logLevel = logLevel,
-				.logFileCount = logFileCount,
-				.useHooks = true
+			const auto logger = internalManager.GetLogger();
+			logger->SetMinLevel(logMinLevel);
+			logger->SetFlushLevel(logMinLevel);
+
+			auto setupOptions = F4SE::SetupOptions{
+				.logger = logger.get(),
+				.logRotationCount = logRotationCount,
+				.logRotationByteSize = logRotationByteSize,
+				.useHooks = true,
+				.useTrampoline = true
 			};
 
-			F4SE::Init(a_f4se, initInfo);
+			F4SE::RegisterForOnLoad(
+				[&internalManager](const REX::NotNull<std::shared_ptr<REL::HookList>>& a_hookList) -> void {
+					internalManager.OnApiLoad(a_hookList);
+				});
+
+			F4SE::Setup(a_interface, std::move(setupOptions));
 
 			Plugin::MessagingManager::Setup(F4SE::GetMessagingInterface());
 		});

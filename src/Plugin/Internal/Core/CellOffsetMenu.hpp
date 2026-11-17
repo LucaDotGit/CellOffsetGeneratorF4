@@ -2,8 +2,7 @@
 
 namespace Plugin::Internal::Core
 {
-	class CellOffsetMenu final
-		: public F4SE::Menus::MenuInfo
+	class CellOffsetMenu final : public F4SE::Menus::MenuInfo
 	{
 	public:
 		CellOffsetMenu(
@@ -18,87 +17,76 @@ namespace Plugin::Internal::Core
 		CellOffsetMenu(const CellOffsetMenu&) = delete;
 		CellOffsetMenu(CellOffsetMenu&&) = delete;
 
-		CellOffsetMenu& operator=(const CellOffsetMenu&) = delete;
-		CellOffsetMenu& operator=(CellOffsetMenu&&) = delete;
+		auto operator=(const CellOffsetMenu&) -> CellOffsetMenu& = delete;
+		auto operator=(CellOffsetMenu&&) -> CellOffsetMenu& = delete;
 
-		auto CreateMenuInstance() const
-			-> REX::NotNull<std::unique_ptr<RE::GameMenuBase>> override;
+		auto CreateMenuInstance() const -> REX::NotNull<std::unique_ptr<RE::GameMenuBase>> override;
 
-		void OnMenuLoadSuccess(const REX::NotNull<std::unique_ptr<RE::GameMenuBase>>& a_menuInstance) const override;
-		void OnMenuLoadFailure(const REX::NotNull<std::unique_ptr<RE::GameMenuBase>>& a_menuInstance) const override;
-
-		[[nodiscard]] std::uint32_t GetCurrentProgressCounter() const noexcept;
+		[[nodiscard]]
+		auto GetCurrentProgressCounter() const noexcept -> std::uint32_t;
 		void SetCurrentProgressCounter(std::uint32_t a_value) noexcept;
 
-		[[nodiscard]] std::uint32_t GetMaxProgressCounter() const noexcept;
+		[[nodiscard]]
+		auto GetMaxProgressCounter() const noexcept -> std::uint32_t;
 		void SetMaxProgressCounter(std::uint32_t a_value) noexcept;
-		bool IncrementProgressCounter() noexcept;
+		auto IncrementProgressCounter() noexcept -> bool;
 
 	private:
-		class CustomGameMenu final
-			: public RE::GameMenuBase
+		class CustomGameMenu final : public RE::GameMenuBase
 		{
 		public:
-			CustomGameMenu(
-				const REX::NotNull<std::shared_ptr<const CellOffsetMenu>>& a_cellOffsetMenu);
-
+			explicit CustomGameMenu(std::weak_ptr<const CellOffsetMenu> a_cellOffsetMenu);
 			~CustomGameMenu() override;
 
 			CustomGameMenu(const CustomGameMenu&) = delete;
 			CustomGameMenu(CustomGameMenu&&) = delete;
 
-			CustomGameMenu& operator=(const CustomGameMenu&) = delete;
-			CustomGameMenu& operator=(CustomGameMenu&&) = delete;
+			auto operator=(const CustomGameMenu&) -> CustomGameMenu& = delete;
+			auto operator=(CustomGameMenu&&) -> CustomGameMenu& = delete;
 
 			void MapCodeObjectFunctions() override;
 
 		private:
-			REX::NotNull<std::shared_ptr<const CellOffsetMenu>> _cellOffsetMenu;
+			std::weak_ptr<const CellOffsetMenu> _cellOffsetMenu;
 		};
 
-		class getCurrentProgressCounter final
-			: public ::Scaleform::GFx::FunctionHandler
+		class getCurrentProgressCounter final : public ::Scaleform::GFx::FunctionHandler
 		{
 		public:
-			getCurrentProgressCounter(
-				const REX::NotNull<std::shared_ptr<const CellOffsetMenu>>& a_cellOffsetMenu);
-
+			explicit getCurrentProgressCounter(std::weak_ptr<const CellOffsetMenu> a_cellOffsetMenu);
 			~getCurrentProgressCounter() override;
 
 			getCurrentProgressCounter(const getCurrentProgressCounter&) = delete;
 			getCurrentProgressCounter(getCurrentProgressCounter&&) = delete;
 
-			getCurrentProgressCounter& operator=(const getCurrentProgressCounter&) = delete;
-			getCurrentProgressCounter& operator=(getCurrentProgressCounter&&) = delete;
+			auto operator=(const getCurrentProgressCounter&) -> getCurrentProgressCounter& = delete;
+			auto operator=(getCurrentProgressCounter&&) -> getCurrentProgressCounter& = delete;
 
 			void Call(const ::Scaleform::GFx::FunctionHandler::Params& a_params) override;
 
 		private:
-			REX::NotNull<std::shared_ptr<const CellOffsetMenu>> _cellOffsetMenu;
+			std::weak_ptr<const CellOffsetMenu> _cellOffsetMenu;
 		};
 
-		class getMaxProgressCounter final
-			: public ::Scaleform::GFx::FunctionHandler
+		class getMaxProgressCounter final : public ::Scaleform::GFx::FunctionHandler
 		{
 		public:
-			getMaxProgressCounter(
-				const REX::NotNull<std::shared_ptr<const CellOffsetMenu>>& a_cellOffsetMenu);
-
+			explicit getMaxProgressCounter(std::weak_ptr<const CellOffsetMenu> a_cellOffsetMenu);
 			~getMaxProgressCounter() override;
 
 			getMaxProgressCounter(const getMaxProgressCounter&) = delete;
 			getMaxProgressCounter(getMaxProgressCounter&&) = delete;
 
-			getMaxProgressCounter& operator=(const getMaxProgressCounter&) = delete;
-			getMaxProgressCounter& operator=(getMaxProgressCounter&&) = delete;
+			auto operator=(const getMaxProgressCounter&) -> getMaxProgressCounter& = delete;
+			auto operator=(getMaxProgressCounter&&) -> getMaxProgressCounter& = delete;
 
 			void Call(const ::Scaleform::GFx::FunctionHandler::Params& a_params) override;
 
 		private:
-			REX::NotNull<std::shared_ptr<const CellOffsetMenu>> _cellOffsetMenu;
+			std::weak_ptr<const CellOffsetMenu> _cellOffsetMenu;
 		};
 
-		std::atomic<std::uint32_t> _maxProgressCounter{ 0 };
-		std::atomic<std::uint32_t> _currentProgressCounter{ 0 };
+		std::atomic<std::uint32_t> _maxProgressCounter{0};
+		std::atomic<std::uint32_t> _currentProgressCounter{0};
 	};
 }

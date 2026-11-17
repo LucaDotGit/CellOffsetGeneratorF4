@@ -1,84 +1,87 @@
 [Debug]
 
-# [Default: 2] The minimum level of information that is printed to the plugin's log file.
+# The minimum level of information that is printed to the plugin's log file.
 #
 # The following log levels are available:
-# 00 = Trace
-# 01 = Debug
-# 02 = Information
-# 03 = Warning
-# 04 = Error
-# 05 = Critical
-# 06 = Off
-iLogLevel = 2
+# "Trace"
+# "Debug"
+# "Information"
+# "Warning"
+# "Error"
+# "Critical"
+# "Off"
+LogMinLevel = "Information"
 
-# [Default: -1] The maximum number of log files to keep before overwriting older ones.
-iLogFileCount = -1
+# The maximum number of plugin log files to keep before they are rotated out.
+LogRotationCount = 0
+
+# The maximum byte size for a plugin log file before it is rotated out.
+LogRotationByteSize = 0
 
 
-[General]
+[Generation]
 
-# [Default: true] Whether a progress menu is being shown when generating cell offsets.
-bEnableMenu = true
+# Whether a progress menu is shown during the generation.
+EnableMenu = true
 
-# [Default: false] Whether the cell offset generation will only be simulated, without actually creating any caching files.
-bDoDryRun = false
+# Whether the generation will only be simulated, without actually creating any caching files.
+DoDryRun = false
 
-# [Default: true] Whether created cell offset caching files are marked as read-only.
-bCreateReadOnlyFiles = true
+# The number of threads to use for the generation, minus the main thread.
+ThreadCount = 0
 
 
 [Benchmark]
 
-# [Default: false] Whether a benchmark before and after cell offset generation is run.
-# The results are written to "Data/CellOffsetBenchmarks", after the game data is initialized.
-bRunBenchmark = false
+# Whether a benchmark before and after the generation is run.
+# The results are written to "Data/CellOffsetBenchmarks", after the game data has been initialized.
+RunBenchmark = false
 
-# [Default: 100] The number of iterations to run for each benchmark case.
-uiBenchmarkIterationCount = 100
+# The number of iterations to run for each benchmark case.
+BenchmarkIterationCount = 100
 
 # Specifies the benchmark cases to run.
-kBenchmarkCases = [
+BenchmarkCases = [
 	# Cell 0x00E4CA
-	{ sWorldSpace = "Commonwealth", iCellX = -4, iCellY = -6 },
+	{ WorldSpace = "Commonwealth", CellX = -4, CellY = -6 },
 	# Cell 0x00E4CB (FensBrookelineBuildingExt)
-	{ sWorldSpace = "Commonwealth", iCellX = -5, iCellY = -6 },
+	{ WorldSpace = "Commonwealth", CellX = -5, CellY = -6 },
 	# Cell 0x00E4CC
-	{ sWorldSpace = "Commonwealth", iCellX = -6, iCellY = -6 },
+	{ WorldSpace = "Commonwealth", CellX = -6, CellY = -6 },
 	# Cell 0x00E4CD (ChestnutHillockReservoirExt03)
-	{ sWorldSpace = "Commonwealth", iCellX = -7, iCellY = -6 },
+	{ WorldSpace = "Commonwealth", CellX = -7, CellY = -6 },
 	# Cell 0x00E4CE (ChestnutHillockReservoirExt02)
-	{ sWorldSpace = "Commonwealth", iCellX = -8, iCellY = -6 },
+	{ WorldSpace = "Commonwealth", CellX = -8, CellY = -6 },
 	# Cell 0x00E4E8
-	{ sWorldSpace = "Commonwealth", iCellX = -1, iCellY = -7 },
+	{ WorldSpace = "Commonwealth", CellX = -1, CellY = -7 },
 	# Cell 0x00E4E9
-	{ sWorldSpace = "Commonwealth", iCellX = -2, iCellY = -7 },
+	{ WorldSpace = "Commonwealth", CellX = -2, CellY = -7 },
 	# Cell 0x00E4EA
-	{ sWorldSpace = "Commonwealth", iCellX = -3, iCellY = -7 },
+	{ WorldSpace = "Commonwealth", CellX = -3, CellY = -7 },
 	# Cell 0x00E4EB
-	{ sWorldSpace = "Commonwealth", iCellX = -4, iCellY = -7 },
+	{ WorldSpace = "Commonwealth", CellX = -4, CellY = -7 },
 	# Cell 0x00E4EC (FensStreetSewerExt)
-	{ sWorldSpace = "Commonwealth", iCellX = -5, iCellY = -7 },
+	{ WorldSpace = "Commonwealth", CellX = -5, CellY = -7 },
 	# Cell 0x00E4ED (FensSquare)
-	{ sWorldSpace = "Commonwealth", iCellX = -6, iCellY = -7 },
+	{ WorldSpace = "Commonwealth", CellX = -6, CellY = -7 },
 	# Cell 0x00E4EE (ChestnutHillockReservoirExt04)
-	{ sWorldSpace = "Commonwealth", iCellX = -7, iCellY = -7 },
+	{ WorldSpace = "Commonwealth", CellX = -7, CellY = -7 },
 	# Cell 0x00E4EF (ChestnutHillockReservoirExt)
-	{ sWorldSpace = "Commonwealth", iCellX = -8, iCellY = -7 },
+	{ WorldSpace = "Commonwealth", CellX = -8, CellY = -7 },
 	# Cell 0x00E509
-	{ sWorldSpace = "Commonwealth", iCellX = -1, iCellY = -8 },
+	{ WorldSpace = "Commonwealth", CellX = -1, CellY = -8 },
 	# Cell 0x00E50A
-	{ sWorldSpace = "Commonwealth", iCellX = -2, iCellY = -8 },
+	{ WorldSpace = "Commonwealth", CellX = -2, CellY = -8 },
 	# Cell 0x00E50B (DiamondCityExt03)
-	{ sWorldSpace = "Commonwealth", iCellX = -3, iCellY = -8 },
+	{ WorldSpace = "Commonwealth", CellX = -3, CellY = -8 },
 	# Cell 0x00E50C (DiamondCityExt)
-	{ sWorldSpace = "Commonwealth", iCellX = -4, iCellY = -8 },
+	{ WorldSpace = "Commonwealth", CellX = -4, CellY = -8 },
 	# Cell 0x00E50D (DiamondCityExt01)
-	{ sWorldSpace = "Commonwealth", iCellX = -5, iCellY = -8 },
+	{ WorldSpace = "Commonwealth", CellX = -5, CellY = -8 },
 	# Cell 0x00E50E (FensParkviewApartmentsExt)
-	{ sWorldSpace = "Commonwealth", iCellX = -6, iCellY = -8 },
+	{ WorldSpace = "Commonwealth", CellX = -6, CellY = -8 },
 	# Cell 0x00E50F
-	{ sWorldSpace = "Commonwealth", iCellX = -7, iCellY = -8 },
+	{ WorldSpace = "Commonwealth", CellX = -7, CellY = -8 },
 	# Cell 0x00E510 (MassPikeTunnelWestExt)
-	{ sWorldSpace = "Commonwealth", iCellX = -8, iCellY = -8 },
+	{ WorldSpace = "Commonwealth", CellX = -8, CellY = -8 },
 ]

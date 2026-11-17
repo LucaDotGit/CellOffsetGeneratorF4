@@ -1,7 +1,9 @@
 #pragma once
 
 // IWYU pragma: begin_exports
-#include "F4SE/F4SE.hpp"
+#include <CommonLibF4.hpp>
+// IWYU pragma: end_exports
 
+// IWYU pragma: begin_exports
 #include "Common.hpp"
 // IWYU pragma: end_exports

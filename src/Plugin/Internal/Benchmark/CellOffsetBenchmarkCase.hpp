@@ -6,7 +6,7 @@ namespace Plugin::Internal::Benchmark
 	{
 	public:
 		CellOffsetBenchmarkCase(
-			const REX::NotNull<RE::TESWorldSpace*>& a_worldSpace,
+			REX::NotNull<RE::TESWorldSpace*> a_worldSpace,
 			std::int32_t a_cellX,
 			std::int32_t a_cellY,
 			std::uint32_t a_iterationCount);
@@ -16,21 +16,47 @@ namespace Plugin::Internal::Benchmark
 		CellOffsetBenchmarkCase(const CellOffsetBenchmarkCase&) = delete;
 		CellOffsetBenchmarkCase(CellOffsetBenchmarkCase&&) noexcept = default;
 
-		CellOffsetBenchmarkCase& operator=(const CellOffsetBenchmarkCase&) = delete;
-		CellOffsetBenchmarkCase& operator=(CellOffsetBenchmarkCase&&) noexcept = default;
+		auto operator=(const CellOffsetBenchmarkCase&) -> CellOffsetBenchmarkCase& = delete;
+		auto operator=(CellOffsetBenchmarkCase&&) noexcept -> CellOffsetBenchmarkCase& = default;
 
-		[[nodiscard]] auto GetWorldSpace() const noexcept { return _worldSpace; }
-		[[nodiscard]] auto GetCellX() const noexcept { return _cellX; }
-		[[nodiscard]] auto GetCellY() const noexcept { return _cellY; }
+		[[nodiscard]]
+		auto GetWorldSpace() const noexcept
+		{
+			return _worldSpace;
+		}
 
-		[[nodiscard]] auto GetIterationCount() const noexcept { return _iterationCount; }
-		[[nodiscard]] auto GetElapsedTime() const noexcept { return _stopwatch.GetElapsedTime() / _iterationCount; }
+		[[nodiscard]]
+		auto GetCellX() const noexcept
+		{
+			return _cellX;
+		}
 
-		void RunBenchmark();
+		[[nodiscard]]
+		auto GetCellY() const noexcept
+		{
+			return _cellY;
+		}
+
+		[[nodiscard]]
+		auto GetIterationCount() const noexcept
+		{
+			return _iterationCount;
+		}
+
+		[[nodiscard]]
+		auto GetElapsedTime() const noexcept
+		{
+			return _stopwatch.GetElapsedTime() / _iterationCount;
+		}
+
+		void RunBenchmark(const RE::TESDataHandler& a_dataHandler);
 		void ResetBenchmark() noexcept;
 
+		[[nodiscard]]
+		static auto GetWorldSpaceByEditorId(const RE::BSFixedString& a_editorId) -> RE::TESWorldSpace*;
+
 	private:
-		void RunBenchmarkImpl(const RE::TESDataHandler* a_dataHandler);
+		void RunBenchmarkImpl(const RE::TESDataHandler& a_dataHandler);
 
 		REX::NotNull<RE::TESWorldSpace*> _worldSpace;
 		std::int32_t _cellX;

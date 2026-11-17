@@ -1,135 +1,128 @@
 #include "Plugin/Internal/BenchmarkManager.hpp"
 
 #include "Plugin/Internal/Benchmark/CellOffsetBenchmark.hpp"
+#include "Plugin/Internal/Benchmark/CellOffsetBenchmarkCase.hpp"
 #include "Plugin/Internal/PatchesManager.hpp"
 #include "Plugin/Internal/SettingsManager.hpp"
 
 namespace Plugin::Internal
 {
 	BenchmarkManager::BenchmarkManager(
-		std::filesystem::path a_cellOffsetBenchmarksDirectoryPath,
-		std::filesystem::path a_cellOffsetBenchmarkFileExtension,
+		const REX::NotNull<std::shared_ptr<REX::Logging::ILogger>>& a_logger,
+		std::filesystem::path a_benchmarksDirectoryPath,
+		std::filesystem::path a_benchmarkFileExtension,
 		const REX::NotNull<std::shared_ptr<SettingsManager>>& a_settingsManager,
-		const REX::NotNull<std::shared_ptr<PatchesManager>>& a_patchesManager)
-		: _cellOffsetBenchmarksDirectoryPath(std::move(a_cellOffsetBenchmarksDirectoryPath)),
-		  _cellOffsetBenchmarkFileExtension(std::move(a_cellOffsetBenchmarkFileExtension)),
-		  _settingsManager(a_settingsManager),
-		  _patchesManager(a_patchesManager),
-		  _cellOffsetBenchmark(std::make_shared<Benchmark::CellOffsetBenchmark>())
+		const REX::NotNull<std::shared_ptr<PatchesManager>>& a_patchesManager) :
+		_logger(a_logger),
+		_benchmarksDirectoryPath(std::move(a_benchmarksDirectoryPath)),
+		_benchmarkFileExtension(std::move(a_benchmarkFileExtension)),
+		_settingsManager(a_settingsManager),
+		_patchesManager(a_patchesManager),
+		_cellOffsetBenchmark(std::make_shared<Benchmark::CellOffsetBenchmark>())
 	{
 	}
 
 	BenchmarkManager::~BenchmarkManager() noexcept = default;
 
-	void BenchmarkManager::OnGameDataReady()
+	void BenchmarkManager::OnGameDataReady([[maybe_unused]] bool a_isReady)
 	{
-		REX::LogDebug("{}"sv,
-			REX::GetCurrentFunctionName());
+		_logger->LogDebug("{}"sv, REX::GetCurrentFunctionName());
 
 		if (!_settingsManager->GetRunBenchmarkSetting()->GetValue()) {
 			return;
 		}
 
-		LoadBenchmarkCasesFromSettings();
+		const auto benchmarkCases = LoadBenchmarkCasesFromSettings();
+		_cellOffsetBenchmark->AddBenchmarkCases(benchmarkCases);
 	}
 
 	void BenchmarkManager::RunBenchmarks_Before()
 	{
+		constexpr auto BENCHMARK_EXTRA_DATA = "Before"sv;
+
 		if (!_settingsManager->GetRunBenchmarkSetting()->GetValue()) {
 			return;
 		}
 
 		_patchesManager->Disable();
 
-		RunBenchmarksImpl("Before"sv);
+		const auto runBenchmarksResult = RunBenchmarksImpl(BENCHMARK_EXTRA_DATA);
+		if (!runBenchmarksResult.has_value()) [[unlikely]] {
+			_logger->LogError(
+				R"(Failed to run benchmarks "{}": {})"sv,
+				BENCHMARK_EXTRA_DATA,
+				runBenchmarksResult.error());
+		}
 
 		_patchesManager->Enable();
 	}
 
 	void BenchmarkManager::RunBenchmarks_After()
 	{
+		constexpr auto BENCHMARK_EXTRA_DATA = "After"sv;
+
 		if (!_settingsManager->GetRunBenchmarkSetting()->GetValue()) {
 			return;
 		}
 
-		RunBenchmarksImpl("After"sv);
-	}
-
-	void BenchmarkManager::LoadBenchmarkCasesFromSettings()
-	{
-		constexpr auto WORLD_SPACE_KEY = "sWorldSpace"sv;
-		constexpr auto CELL_X_KEY = "iCellX"sv;
-		constexpr auto CELL_Y_KEY = "iCellY"sv;
-
-		const auto benchmarkIterationCount = _settingsManager->GetBenchmarkIterationCountSetting()->GetValue();
-		const auto benchmarkCasesArray = _settingsManager->GetBenchmarkCasesSetting()->GetValue();
-
-		for (const auto& benchmarkCaseValue : benchmarkCasesArray) {
-			if (!benchmarkCaseValue.is_table()) {
-				continue;
-			}
-
-			constexpr auto MISSING_KEY_WARNING =
-				R"(Missing or invalid key "{}" in benchmark case)"sv;
-
-			const auto& benchmarkCaseTable = benchmarkCaseValue.as_table();
-
-			const auto worldSpaceEditorIdIt = benchmarkCaseTable.find(std::string(WORLD_SPACE_KEY));
-			if (worldSpaceEditorIdIt == benchmarkCaseTable.end() || !worldSpaceEditorIdIt->second.is_string()) [[unlikely]] {
-				REX::LogWarning(MISSING_KEY_WARNING,
-					WORLD_SPACE_KEY);
-				continue;
-			}
-
-			const auto cellXIt = benchmarkCaseTable.find(std::string(CELL_X_KEY));
-			if (cellXIt == benchmarkCaseTable.end() || !cellXIt->second.is_integer()) [[unlikely]] {
-				REX::LogWarning(MISSING_KEY_WARNING,
-					CELL_X_KEY);
-				continue;
-			}
-
-			const auto cellYIt = benchmarkCaseTable.find(std::string(CELL_Y_KEY));
-			if (cellYIt == benchmarkCaseTable.end() || !cellYIt->second.is_integer()) [[unlikely]] {
-				REX::LogWarning(MISSING_KEY_WARNING,
-					CELL_Y_KEY);
-				continue;
-			}
-
-			const auto worldSpaceEditorId = RE::BSFixedString(worldSpaceEditorIdIt->second.as_string());
-			const auto cellX = static_cast<std::int32_t>(cellXIt->second.as_integer());
-			const auto cellY = static_cast<std::int32_t>(cellYIt->second.as_integer());
-
-			_cellOffsetBenchmark->CreateAndAddBenchmarkCase(
-				worldSpaceEditorId,
-				cellX,
-				cellY,
-				benchmarkIterationCount);
+		const auto runBenchmarksResult = RunBenchmarksImpl(BENCHMARK_EXTRA_DATA);
+		if (!runBenchmarksResult.has_value()) [[unlikely]] {
+			_logger->LogError(
+				R"(Failed to run benchmarks "{}": {})"sv,
+				BENCHMARK_EXTRA_DATA,
+				runBenchmarksResult.error());
 		}
 	}
 
-	void BenchmarkManager::RunBenchmarksImpl(std::string_view a_extraData)
+	auto BenchmarkManager::LoadBenchmarkCasesFromSettings()
+		-> std::vector<REX::NotNull<std::shared_ptr<Benchmark::CellOffsetBenchmarkCase>>>
 	{
-		REX::LogDebug(R"(Running cell offset benchmark with extra data "{}")"sv,
-			a_extraData);
+		const auto benchmarkIterationCount = _settingsManager->GetBenchmarkIterationCountSetting()->GetValue();
 
-		_cellOffsetBenchmark->RunBenchmark();
+		auto result = std::vector<REX::NotNull<std::shared_ptr<Benchmark::CellOffsetBenchmarkCase>>>();
+
+		for (const auto& benchmarkCase : _settingsManager->GetBenchmarkCasesSetting()->GetValue()) {
+			auto* worldSpace = Benchmark::CellOffsetBenchmarkCase::GetWorldSpaceByEditorId(
+				RE::BSFixedString(benchmarkCase.WorldSpace));
+			if (!worldSpace) [[unlikely]] {
+				continue;
+			}
+
+			result.emplace_back(
+				std::make_shared<Benchmark::CellOffsetBenchmarkCase>(
+					worldSpace,
+					benchmarkCase.CellX,
+					benchmarkCase.CellY,
+					benchmarkIterationCount));
+		}
+
+		return result;
+	}
+
+	auto BenchmarkManager::RunBenchmarksImpl(std::string_view a_extraData) -> std::expected<void, std::string>
+	{
+		const auto* dataHandler = RE::TESDataHandler::GetSingleton();
+		if (!dataHandler) [[unlikely]] {
+			REX::Fail("Failed to get the game's data handler."sv);
+		}
+
+		_cellOffsetBenchmark->RunBenchmark(*dataHandler);
 
 		const auto filePath = _cellOffsetBenchmark->FormatBenchmarkFilePath(
-			_cellOffsetBenchmarksDirectoryPath,
-			_cellOffsetBenchmarkFileExtension,
+			_benchmarksDirectoryPath,
+			_benchmarkFileExtension,
 			a_extraData);
 
-		const auto saveError = _cellOffsetBenchmark->SaveBenchmarkResult(filePath);
+		const auto fileContent = _cellOffsetBenchmark->FormatBenchmarkResult();
+
+		const auto saveError = REX::WriteAllTextToFile(filePath, std::string_view(fileContent));
 
 		_cellOffsetBenchmark->ClearBenchmarkResult();
 
 		if (saveError.value() != REX::ERROR_NUMBER_SUCCESS) [[unlikely]] {
-			REX::LogError(R"(Failed to save benchmark results to file "{}": {})"sv,
-				filePath.generic_string(), saveError.message());
-			return;
+			return std::unexpected(saveError.message());
 		}
 
-		REX::LogDebug(R"(Saved cell offset benchmark results to file "{}")"sv,
-			filePath.generic_string());
+		return {};
 	}
 }

@@ -1,143 +1,133 @@
 # --- Project ---
 
-cmake_minimum_required(VERSION 4.3.0)
+cmake_minimum_required(VERSION 4.5.0)
 
 set(COMMONLIB_PLUGIN_NAME "CellOffsetGenerator")
 set(COMMONLIB_PLUGIN_AUTHOR "Luca")
-set(COMMONLIB_PLUGIN_VERSION "1.1.0.0")
-set(COMMONLIB_PLUGIN_LICENSE "GPL-3.0 License")
+set(COMMONLIB_PLUGIN_VERSION "2.0.0.0")
+set(COMMONLIB_PLUGIN_LICENSE "GPL-3.0-or-later")
 set(COMMONLIB_PLUGIN_DESCRIPTION "${COMMONLIB_PLUGIN_NAME}")
+set(COMMONLIB_PLUGIN_COMMENTS "")
 
 string(TIMESTAMP COMMONLIB_PLUGIN_COPYRIGHT_YEAR "%Y" UTC)
+
+set(COMMONLIB_FEATURE_INI FALSE)
+set(COMMONLIB_FEATURE_TOML TRUE)
+set(COMMONLIB_FEATURE_JSON FALSE)
+set(COMMONLIB_FEATURE_YAML FALSE)
+set(COMMONLIB_FEATURE_XBYAK FALSE)
+
+set(COMMONLIB_RUNTIME_VR FALSE)
+set(COMMONLIB_RUNTIME_OG TRUE)
+set(COMMONLIB_RUNTIME_NG TRUE)
+set(COMMONLIB_RUNTIME_AE TRUE)
 
 project(
 	"${COMMONLIB_PLUGIN_NAME}"
 	VERSION "${COMMONLIB_PLUGIN_VERSION}"
 	DESCRIPTION "${COMMONLIB_PLUGIN_DESCRIPTION}"
+	SPDX_LICENSE "${COMMONLIB_PLUGIN_LICENSE}"
 	LANGUAGES CXX
 )
 
-set(CMAKE_CXX_STANDARD 23)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_EXTENSIONS OFF)
+# --- Dependencies ---
 
-set(CMAKE_INTERPROCEDURAL_OPTIMIZATION ON)
-set(CMAKE_INTERPROCEDURAL_OPTIMIZATION_DEBUG OFF)
-set(CMAKE_OPTIMIZE_DEPENDENCIES ON)
-
-include(GNUInstallDirs)
-
-# --- Options ---
-
-set(COMMONLIB_RUNTIME_VR OFF)
-set(COMMONLIB_RUNTIME_OG ON)
-set(COMMONLIB_RUNTIME_NG ON)
-set(COMMONLIB_RUNTIME_AE ON)
-
-set(COMMONLIB_OPTION_FMT ON)
-set(COMMONLIB_OPTION_XBYAK OFF)
-set(COMMONLIB_OPTION_INI OFF)
-set(COMMONLIB_OPTION_TOML ON)
-set(COMMONLIB_OPTION_JSON OFF)
-
-# --- Add Dependencies ---
-
-find_package(xxhash CONFIG REQUIRED)
-
-# --- Add Sources ---
-
-set(
-	PCH_SOURCE
-	"${CMAKE_CURRENT_SOURCE_DIR}/src/PCH.hpp"
+find_package(
+	xxhash
+	REQUIRED
+	CONFIG
 )
 
-set(
-	COMMONLIB_ROOT_DIR
-	"${CMAKE_CURRENT_SOURCE_DIR}/lib/CommonLibF4"
-)
+# --- Source Files ---
 
-include("${COMMONLIB_ROOT_DIR}/cmake/GenerateXsePluginInfo.cmake")
-include("${COMMONLIB_ROOT_DIR}/cmake/SetXseOutputPath.cmake")
-include("${COMMONLIB_ROOT_DIR}/cmake/CopyXseOutput.cmake")
-
-generate_xse_plugin_info("${COMMONLIB_ROOT_DIR}")
-
-file(
-	GLOB_RECURSE
-		SOURCES
-	CONFIGURE_DEPENDS
-		"${CMAKE_CURRENT_SOURCE_DIR}/src/*"
-)
-
-list(
-	REMOVE_ITEM
-		SOURCES
-		"${PCH_SOURCE}"
-)
-
-source_group(
-	TREE
-		"${CMAKE_CURRENT_SOURCE_DIR}"
-	FILES
-		${SOURCES}
-)
-
-source_group(
-	TREE
-		"${CMAKE_CURRENT_BINARY_DIR}/include"
-	FILES
-		"${XSE_PLUGIN_INFO_CPP_TARGET}"
-)
-
-# --- Include ---
+set(COMMONLIB_ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/lib/CommonLibF4")
 
 if(NOT TARGET CommonLibF4)
-	add_subdirectory("${COMMONLIB_ROOT_DIR}" CommonLibF4)
+	add_subdirectory(
+		"${COMMONLIB_ROOT_DIR}"
+		CommonLibF4
+	)
 endif()
 
 add_library(
 	"${PROJECT_NAME}"
 	SHARED
-		${SOURCES}
-		"${XSE_PLUGIN_INFO_CPP_TARGET}"
-		"${WIN32_VERSION_TARGET}"
 )
 
-target_include_directories(
+file(
+	GLOB_RECURSE
+	_headers
+	CONFIGURE_DEPENDS
+	"${CMAKE_CURRENT_SOURCE_DIR}/src/*.hpp"
+)
+
+file(
+	GLOB_RECURSE
+	_modules
+	CONFIGURE_DEPENDS
+	"${CMAKE_CURRENT_SOURCE_DIR}/src/*.cppm"
+)
+
+file(
+	GLOB_RECURSE
+	_sources
+	CONFIGURE_DEPENDS
+	"${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp"
+)
+
+target_sources(
 	"${PROJECT_NAME}"
 	PRIVATE
-		"${CMAKE_CURRENT_SOURCE_DIR}/src"
-		"${CMAKE_CURRENT_SOURCE_DIR}/include"
-		"${CMAKE_CURRENT_BINARY_DIR}/include"
+	FILE_SET HEADERS
+	FILES ${_headers}
+
+	PRIVATE
+	FILE_SET CXX_MODULES
+	FILES ${_modules}
+
+	PRIVATE
+	${_sources}
 )
 
 target_precompile_headers(
 	"${PROJECT_NAME}"
 	PRIVATE
-		"${PCH_SOURCE}"
+	"${CMAKE_CURRENT_SOURCE_DIR}/src/PCH.hpp"
 )
 
-set_xse_output_path("${PROJECT_NAME}")
+target_include_directories(
+	"${PROJECT_NAME}"
+	PRIVATE
+	"${CMAKE_CURRENT_SOURCE_DIR}/src"
+)
 
-# --- Compile ---
+# --- Plugin Info ---
+
+include("${COMMONLIB_ROOT_DIR}/assets/cmake/ConfigureXsePluginInfo.cmake")
+
+configure_xse_plugin_info("${COMMONLIB_ROOT_DIR}")
+
+# --- Output Path ---
+
+include("${COMMONLIB_ROOT_DIR}/assets/cmake/ConfigureXseOutputPath.cmake")
+
+configure_xse_output_path()
+
+# --- Compilation ---
 
 target_compile_definitions(
 	"${PROJECT_NAME}"
 	PRIVATE
-		"XXH_INLINE_ALL=1"
-		"XXH_ENABLE_AUTOVECTORIZE=1"
-		"$<$<CONFIG:Debug>:XXH_DEBUGLEVEL=1>"
+	"XXH_INLINE_ALL=1"
+	"XXH_ENABLE_AUTOVECTORIZE=1"
+	"$<$<CONFIG:Debug>:XXH_DEBUGLEVEL=1>"
 )
 
-# --- Link ---
+# --- Linkage ---
 
 target_link_libraries(
 	"${PROJECT_NAME}"
 	PRIVATE
-		CommonLibF4::CommonLibF4
-		xxHash::xxhash
+	"CommonLibF4::CommonLibF4"
+	"xxHash::xxhash"
 )
-
-# --- Copy Output ---
-
-copy_xse_copy_output("${PROJECT_NAME}")
